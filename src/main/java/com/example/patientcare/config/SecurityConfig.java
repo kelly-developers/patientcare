@@ -50,9 +50,10 @@ public class SecurityConfig {
         http.cors().and().csrf().disable()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/auth/**").permitAll()  // Make sure this matches your auth endpoints
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/h2-console/**").permitAll()  // If using H2 console
                         .anyRequest().authenticated()
                 );
 
