@@ -9,7 +9,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class CorsConfig {
 
-    @Value("${app.cors.allowed-origins:*}")
+    @Value("${app.cors.allowed-origins:https://patientcares.netlify.app,http://localhost:3000}")
     private String[] allowedOrigins;
 
     @Bean
@@ -17,13 +17,21 @@ public class CorsConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**")  // Changed from "/api/**" to "/**"
+                registry.addMapping("/api/**")
                         .allowedOrigins(allowedOrigins)
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+                        .allowedMethods("*")
                         .allowedHeaders("*")
-                        .exposedHeaders("Authorization")  // Add this line
+                        .exposedHeaders("Authorization")
                         .allowCredentials(true)
-                        .maxAge(3600);  // Add max age for preflight
+                        .maxAge(3600);
+
+                // Additional mapping for root paths if needed
+                registry.addMapping("/auth/**")
+                        .allowedOrigins(allowedOrigins)
+                        .allowedMethods("*")
+                        .allowedHeaders("*")
+                        .allowCredentials(true)
+                        .maxAge(3600);
             }
         };
     }

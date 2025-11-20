@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*", maxAge = 3600)
+// REMOVE THIS: @CrossOrigin(origins = {"https://patientcares.netlify.app", "http://localhost:3000"})
 public class AuthController {
 
     @Autowired
@@ -42,5 +42,10 @@ public class AuthController {
     public ResponseEntity<?> logoutUser() {
         authService.logoutUser();
         return ResponseEntity.ok(new ApiResponse(true, "User logged out successfully"));
+    }
+
+    @GetMapping("/verify")
+    public ResponseEntity<?> verifyToken() {
+        return ResponseEntity.ok(new ApiResponse(true, "Token is valid", null));
     }
 }
