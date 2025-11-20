@@ -26,34 +26,12 @@ public class JwtService {
     private int refreshTokenExpirationMs;
 
     public String generateJwtToken(Authentication authentication) {
-        com.example.patientcare.security.UserPrincipal userPrincipal =
-                (com.example.patientcare.security.UserPrincipal) authentication.getPrincipal();
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
         return Jwts.builder()
                 .subject(userPrincipal.getUsername())
                 .issuedAt(new Date())
                 .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
-                .signWith(getSigningKey())
-                .compact();
-    }
-
-    public String generateTokenFromUsername(String username) {
-        return Jwts.builder()
-                .subject(username)
-                .issuedAt(new Date())
-                .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
-                .signWith(getSigningKey())
-                .compact();
-    }
-
-    public String generateRefreshToken(Authentication authentication) {
-        com.example.patientcare.security.UserPrincipal userPrincipal =
-                (com.example.patientcare.security.UserPrincipal) authentication.getPrincipal();
-
-        return Jwts.builder()
-                .subject(userPrincipal.getUsername())
-                .issuedAt(new Date())
-                .expiration(new Date((new Date()).getTime() + refreshTokenExpirationMs))
                 .signWith(getSigningKey())
                 .compact();
     }
