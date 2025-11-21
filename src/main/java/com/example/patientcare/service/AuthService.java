@@ -60,7 +60,7 @@ public class AuthService {
                 userPrincipal.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
-                user.getRole().name() // Convert enum to string
+                user.getRole() // Convert enum to string
         );
     }
 
@@ -73,7 +73,7 @@ public class AuthService {
             throw new RuntimeException("Error: Email is already in use!");
         }
 
-        // Convert string role to enum - FIXED: Use the fromString method from the enum
+        // Convert string role to enum - FIXED: Use the fromString method
         User.UserRole userRole;
         if (signUpRequest.getRole() != null && !signUpRequest.getRole().trim().isEmpty()) {
             try {
@@ -87,15 +87,14 @@ public class AuthService {
             userRole = User.UserRole.ROLE_DOCTOR;
         }
 
-        // Create new user's account
-        User user = new User(
-                signUpRequest.getUsername(),
-                signUpRequest.getEmail(),
-                passwordEncoder.encode(signUpRequest.getPassword()),
-                signUpRequest.getFirstName(),
-                signUpRequest.getLastName(),
-                userRole // Use the converted enum
-        );
+        // Create new user's account - FIXED: Make sure we're using the enum
+        User user = new User();
+        user.setUsername(signUpRequest.getUsername());
+        user.setEmail(signUpRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
+        user.setFirstName(signUpRequest.getFirstName());
+        user.setLastName(signUpRequest.getLastName());
+        user.setRole(userRole); // This should be the enum
 
         user.setPhone(signUpRequest.getPhone());
         user.setSpecialization(signUpRequest.getSpecialization());
@@ -121,7 +120,7 @@ public class AuthService {
                 userPrincipal.getEmail(),
                 savedUser.getFirstName(),
                 savedUser.getLastName(),
-                savedUser.getRole().name() // Convert enum to string
+                savedUser.getRole() // Convert enum to string
         );
     }
 
