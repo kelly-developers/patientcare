@@ -36,7 +36,18 @@ public class JwtService {
                 .compact();
     }
 
-    public String getUserNameFromJwtToken(String token) {
+    // ADD THIS METHOD - This is what JwtAuthenticationFilter calls
+    public String generateJwtToken(String username) {
+        return Jwts.builder()
+                .subject(username)
+                .issuedAt(new Date())
+                .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    // FIXED: Changed from getUserNameFromJwtToken to getUsernameFromJwtToken
+    public String getUsernameFromJwtToken(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
@@ -45,6 +56,7 @@ public class JwtService {
                 .getSubject();
     }
 
+    // FIXED: Changed from validateJwtToken to validateJwtToken
     public boolean validateJwtToken(String authToken) {
         try {
             Jwts.parser()
@@ -67,7 +79,16 @@ public class JwtService {
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
-        return Keys.hmacShaKeyFor(keyBytes);
+        try {
+            byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+            return Keys.hmacShaKeyFor(keyBytes);
+        } catch (Exception e) {
+            logger.error("Failed to decode JWT secret as Base64, using as plain text");
+            // Fallback: use the string directly (ensure it's long enough)
+            if (jwtSecret.length() < 32) {
+                throw new IllegalArgumentException("JWT secret must be at least 32 characters when not Base64 encoded");
+            }
+            return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        }
     }
 }

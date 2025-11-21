@@ -1,38 +1,38 @@
 package com.example.patientcare.dto.request;
 
-import com.example.patientcare.entity.User.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class SignupRequest {
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @NotBlank
+    @Size(min = 3, max = 50)
     private String username;
 
-    @NotBlank(message = "Email is required")
+    @NotBlank
     @Size(max = 100)
-    @Email(message = "Email should be valid")
+    @Email
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 6, max = 120, message = "Password must be between 6 and 120 characters")
+    @NotBlank
+    @Size(min = 6, max = 120)
     private String password;
 
-    @NotBlank(message = "First name is required")
+    @NotBlank
     @Size(max = 50)
     private String firstName;
 
-    @NotBlank(message = "Last name is required")
+    @NotBlank
     @Size(max = 50)
     private String lastName;
 
+    @Size(max = 20)
     private String phone;
-    private String specialization;
-    private UserRole role;
 
-    // Constructors
-    public SignupRequest() {}
+    private String role; // Keep as String for JSON deserialization
+
+    @Size(max = 100)
+    private String specialization;
 
     // Getters and Setters
     public String getUsername() { return username; }
@@ -53,9 +53,9 @@ public class SignupRequest {
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
 
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
+
     public String getSpecialization() { return specialization; }
     public void setSpecialization(String specialization) { this.specialization = specialization; }
-
-    public UserRole getRole() { return role; }
-    public void setRole(UserRole role) { this.role = role; }
 }

@@ -19,8 +19,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-
 @Service
 public class AuthService {
 
@@ -62,7 +60,7 @@ public class AuthService {
                 userPrincipal.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
-                user.getRole()
+                user.getRole().name() // Convert enum to string
         );
     }
 
@@ -75,6 +73,23 @@ public class AuthService {
             throw new RuntimeException("Error: Email is already in use!");
         }
 
+        // Convert string role to enum - FIXED THIS LINE
+        User.UserRole userRole;
+        if (signUpRequest.getRole() != null) {
+            try {
+                // Handle both "DOCTOR" and "ROLE_DOCTOR" formats
+                String roleValue = signUpRequest.getRole().startsWith("ROLE_")
+                        ? signUpRequest.getRole()
+                        : "ROLE_" + signUpRequest.getRole().toUpperCase();
+                userRole = User.UserRole.valueOf(roleValue);
+            } catch (IllegalArgumentException e) {
+                // If invalid role provided, default to DOCTOR
+                userRole = User.UserRole.ROLE_DOCTOR;
+            }
+        } else {
+            userRole = User.UserRole.ROLE_DOCTOR;
+        }
+
         // Create new user's account
         User user = new User(
                 signUpRequest.getUsername(),
@@ -82,7 +97,7 @@ public class AuthService {
                 passwordEncoder.encode(signUpRequest.getPassword()),
                 signUpRequest.getFirstName(),
                 signUpRequest.getLastName(),
-                signUpRequest.getRole() != null ? signUpRequest.getRole() : User.UserRole.ROLE_DOCTOR
+                userRole // Use the converted enum
         );
 
         user.setPhone(signUpRequest.getPhone());
@@ -107,9 +122,9 @@ public class AuthService {
                 userPrincipal.getId(),
                 userPrincipal.getUsername(),
                 userPrincipal.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getRole()
+                savedUser.getFirstName(),
+                savedUser.getLastName(),
+                savedUser.getRole().name() // Convert enum to string
         );
     }
 
@@ -120,13 +135,8 @@ public class AuthService {
                 .map(refreshTokenService::verifyExpiration)
                 .map(RefreshToken::getUser)
                 .map(user -> {
-                    // Create authentication for the user to generate JWT token
-                    Authentication authentication = new UsernamePasswordAuthenticationToken(
-                            user.getUsername(),
-                            null,
-                            user.getAuthorities()
-                    );
-                    String token = jwtService.generateJwtToken(authentication);
+                    // Use the new method that takes username
+                    String token = jwtService.generateJwtToken(user.getUsername());
                     return new TokenRefreshResponse(token, requestRefreshToken);
                 })
                 .orElseThrow(() -> new UnauthorizedException("Refresh token is not in database!"));
