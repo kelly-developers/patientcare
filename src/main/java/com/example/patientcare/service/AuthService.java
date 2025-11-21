@@ -73,9 +73,9 @@ public class AuthService {
             throw new RuntimeException("Error: Email is already in use!");
         }
 
-        // Convert string role to enum - FIXED THIS LINE
+        // Convert string role to enum - FIXED: Proper enum conversion
         User.UserRole userRole;
-        if (signUpRequest.getRole() != null) {
+        if (signUpRequest.getRole() != null && !signUpRequest.getRole().trim().isEmpty()) {
             try {
                 // Handle both "DOCTOR" and "ROLE_DOCTOR" formats
                 String roleValue = signUpRequest.getRole().startsWith("ROLE_")
@@ -90,14 +90,14 @@ public class AuthService {
             userRole = User.UserRole.ROLE_DOCTOR;
         }
 
-        // Create new user's account
+        // Create new user's account - FIXED: Use the converted enum
         User user = new User(
                 signUpRequest.getUsername(),
                 signUpRequest.getEmail(),
                 passwordEncoder.encode(signUpRequest.getPassword()),
                 signUpRequest.getFirstName(),
                 signUpRequest.getLastName(),
-                userRole // Use the converted enum
+                userRole // Use the enum, not the string
         );
 
         user.setPhone(signUpRequest.getPhone());
