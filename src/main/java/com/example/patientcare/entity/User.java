@@ -1,5 +1,7 @@
 package com.example.patientcare.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -64,7 +66,26 @@ public class User {
     private Set<RefreshToken> refreshTokens = new HashSet<>();
 
     public enum UserRole {
-        ROLE_ADMIN, ROLE_DOCTOR, ROLE_NURSE, ROLE_RECEPTIONIST
+        ROLE_ADMIN, ROLE_DOCTOR, ROLE_NURSE, ROLE_RECEPTIONIST;
+
+        @JsonCreator
+        public static UserRole fromString(String value) {
+            if (value == null) return null;
+
+            // Handle both "DOCTOR" and "ROLE_DOCTOR" formats
+            String normalizedValue = value.startsWith("ROLE_") ? value : "ROLE_" + value.toUpperCase();
+
+            try {
+                return UserRole.valueOf(normalizedValue);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Unknown role: " + value);
+            }
+        }
+
+        @JsonValue
+        public String toValue() {
+            return this.name();
+        }
     }
 
     @PrePersist
