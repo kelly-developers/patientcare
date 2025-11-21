@@ -2,6 +2,7 @@ package com.example.patientcare.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.io.Encoders;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,38 +26,49 @@ public class JwtService {
     @Value("${app.jwt.refresh-expiration-ms}")
     private int refreshTokenExpirationMs;
 
+    // Method for Authentication object
     public String generateJwtToken(Authentication authentication) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-
-        return Jwts.builder()
-                .subject(userPrincipal.getUsername())
-                .issuedAt(new Date())
-                .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
-                .signWith(getSigningKey())
-                .compact();
+        return generateJwtToken(userPrincipal.getUsername());
     }
 
-    // ADD THIS METHOD - This is what JwtAuthenticationFilter calls
+    // Method for username string
     public String generateJwtToken(String username) {
-        return Jwts.builder()
-                .subject(username)
-                .issuedAt(new Date())
-                .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
-                .signWith(getSigningKey())
-                .compact();
+        try {
+            SecretKey key = getSigningKey();
+
+            String token = Jwts.builder()
+                    .subject(username)
+                    .issuedAt(new Date())
+                    .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                    .signWith(key, SignatureAlgorithm.HS256)
+                    .compact();
+
+            logger.debug("Generated JWT token for user: {}", username);
+            logger.debug("Token length: {}", token.length());
+            logger.debug("Token periods: {}", countPeriods(token));
+
+            return token;
+        } catch (Exception e) {
+            logger.error("Error generating JWT token: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to generate JWT token", e);
+        }
     }
 
-    // FIXED: Changed from getUserNameFromJwtToken to getUsernameFromJwtToken
     public String getUsernameFromJwtToken(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+        try {
+            return Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .getSubject();
+        } catch (Exception e) {
+            logger.error("Error extracting username from JWT: {}", e.getMessage());
+            throw new RuntimeException("Invalid JWT token", e);
+        }
     }
 
-    // FIXED: Changed from validateJwtToken to validateJwtToken
     public boolean validateJwtToken(String authToken) {
         try {
             Jwts.parser()
@@ -80,15 +92,46 @@ public class JwtService {
 
     private SecretKey getSigningKey() {
         try {
+            // Try to decode as Base64 first
             byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+            logger.debug("JWT secret successfully decoded as Base64");
             return Keys.hmacShaKeyFor(keyBytes);
         } catch (Exception e) {
-            logger.error("Failed to decode JWT secret as Base64, using as plain text");
-            // Fallback: use the string directly (ensure it's long enough)
+            logger.warn("JWT secret is not Base64 encoded, using as plain text. Length: {}", jwtSecret.length());
+
+            // If not Base64, use the string directly but ensure it's long enough
             if (jwtSecret.length() < 32) {
-                throw new IllegalArgumentException("JWT secret must be at least 32 characters when not Base64 encoded");
+                String errorMsg = "JWT secret must be at least 32 characters when not Base64 encoded. Current length: " + jwtSecret.length();
+                logger.error(errorMsg);
+                throw new IllegalArgumentException(errorMsg);
             }
-            return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+
+            // Use first 32 characters for 256-bit key
+            String keyString = jwtSecret.length() > 32 ? jwtSecret.substring(0, 32) : jwtSecret;
+            return Keys.hmacShaKeyFor(keyString.getBytes());
+        }
+    }
+
+    // Helper method to debug token structure
+    private long countPeriods(String token) {
+        return token.chars().filter(ch -> ch == '.').count();
+    }
+
+    // Method to validate your JWT secret (call this during startup)
+    public void validateJwtSecret() {
+        try {
+            SecretKey key = getSigningKey();
+            logger.info("JWT secret validation successful");
+
+            // Test token generation
+            String testToken = generateJwtToken("test");
+            if (countPeriods(testToken) != 2) {
+                throw new IllegalStateException("Generated test token has invalid structure");
+            }
+            logger.info("JWT token generation test successful");
+        } catch (Exception e) {
+            logger.error("JWT secret validation failed: {}", e.getMessage());
+            throw new RuntimeException("JWT secret configuration error", e);
         }
     }
 }
