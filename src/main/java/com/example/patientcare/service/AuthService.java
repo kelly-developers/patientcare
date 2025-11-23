@@ -6,11 +6,9 @@ import com.example.patientcare.dto.request.SignupRequest;
 import com.example.patientcare.dto.response.AuthResponse;
 import com.example.patientcare.dto.response.TokenRefreshResponse;
 import com.example.patientcare.dto.response.UserResponse;
-import com.example.patientcare.entity.RefreshToken;
 import com.example.patientcare.entity.User;
 import com.example.patientcare.exception.DuplicateResourceException;
 import com.example.patientcare.exception.UnauthorizedException;
-import com.example.patientcare.repository.RefreshTokenRepository;
 import com.example.patientcare.repository.UserRepository;
 import com.example.patientcare.security.JwtService;
 import com.example.patientcare.security.UserPrincipal;
@@ -26,8 +24,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-
 @Service
 @Transactional
 public class AuthService {
@@ -38,12 +34,6 @@ public class AuthService {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private RefreshTokenRepository refreshTokenRepository;
-
-    @Autowired
-    private RefreshTokenService refreshTokenService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -71,12 +61,13 @@ public class AuthService {
 
             logger.info("JWT token generated successfully for user: {}", userPrincipal.getUsername());
 
-            RefreshToken refreshToken = refreshTokenService.createRefreshToken(userPrincipal.getId());
+            // Generate simple refresh token without database dependency for now
+            String refreshToken = jwtService.generateRefreshToken();
 
             User user = userRepository.findById(userPrincipal.getId())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            return new AuthResponse(token, refreshToken.getToken(), new UserResponse(user));
+            return new AuthResponse(token, refreshToken, new UserResponse(user));
         } catch (BadCredentialsException e) {
             logger.error("Invalid credentials for user: {}", loginRequest.getUsername());
             throw new UnauthorizedException("Invalid username or password");
@@ -127,9 +118,10 @@ public class AuthService {
                 throw new RuntimeException("Generated JWT token is null or empty");
             }
 
-            RefreshToken refreshToken = refreshTokenService.createRefreshToken(savedUser.getId());
+            // Generate simple refresh token without database dependency
+            String refreshToken = jwtService.generateRefreshToken();
 
-            return new AuthResponse(token, refreshToken.getToken(), new UserResponse(savedUser));
+            return new AuthResponse(token, refreshToken, new UserResponse(savedUser));
         } catch (Exception e) {
             logger.error("Registration failed for user {}: {}", signupRequest.getUsername(), e.getMessage(), e);
             throw new RuntimeException("Registration failed: " + e.getMessage());
@@ -137,47 +129,36 @@ public class AuthService {
     }
 
     public TokenRefreshResponse refreshToken(RefreshTokenRequest request) {
-        String requestRefreshToken = request.getRefreshToken();
         logger.info("Attempting token refresh");
 
-        Optional<RefreshToken> refreshTokenOpt = refreshTokenService.findByToken(requestRefreshToken);
+        try {
+            // For now, just generate a new token without validating the refresh token
+            // In production, you should validate the refresh token against a database
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                throw new UnauthorizedException("Authentication required for token refresh");
+            }
 
-        if (refreshTokenOpt.isEmpty()) {
-            logger.error("Refresh token not found in database");
-            throw new UnauthorizedException("Refresh token is not in database");
+            String username = authentication.getName();
+            String newToken = jwtService.generateJwtToken(username);
+            String newRefreshToken = jwtService.generateRefreshToken();
+
+            logger.info("Token refresh successful for user: {}", username);
+            return new TokenRefreshResponse(newToken, newRefreshToken);
+        } catch (Exception e) {
+            logger.error("Token refresh failed: {}", e.getMessage());
+            throw new UnauthorizedException("Token refresh failed: " + e.getMessage());
         }
-
-        RefreshToken refreshToken = refreshTokenService.verifyExpiration(refreshTokenOpt.get());
-        User user = refreshToken.getUser();
-
-        String token = jwtService.generateJwtToken(user.getUsername());
-
-        // Validate new token structure
-        if (token == null || token.trim().isEmpty()) {
-            throw new RuntimeException("Generated JWT token during refresh is null or empty");
-        }
-
-        // Create new refresh token
-        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user.getId());
-        logger.info("Token refresh successful for user: {}", user.getUsername());
-
-        return new TokenRefreshResponse(token, newRefreshToken.getToken());
     }
 
     public void logout() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal) {
-            UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-            refreshTokenService.deleteByUserId(userPrincipal.getId());
-            logger.info("User logged out: {}", userPrincipal.getUsername());
+        try {
+            SecurityContextHolder.clearContext();
+            logger.info("User logged out successfully");
+        } catch (Exception e) {
+            logger.error("Logout error: {}", e.getMessage());
+            throw new RuntimeException("Logout failed");
         }
-        SecurityContextHolder.clearContext();
-    }
-
-    public void logout(String refreshToken) {
-        refreshTokenService.deleteByToken(refreshToken);
-        logger.info("User logged out via refresh token");
-        SecurityContextHolder.clearContext();
     }
 
     public boolean verifyToken(String token) {

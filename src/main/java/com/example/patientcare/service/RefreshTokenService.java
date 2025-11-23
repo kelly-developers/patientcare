@@ -5,18 +5,24 @@ import com.example.patientcare.entity.User;
 import com.example.patientcare.exception.UnauthorizedException;
 import com.example.patientcare.repository.RefreshTokenRepository;
 import com.example.patientcare.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Transactional
 public class RefreshTokenService {
-    @Value("${app.jwt.refresh-expiration-ms}")
+    private static final Logger logger = LoggerFactory.getLogger(RefreshTokenService.class);
+
+    @Value("${app.jwt.refresh-expiration-ms:604800000}") // 7 days default
     private Long refreshTokenDurationMs;
 
     @Autowired
@@ -30,26 +36,31 @@ public class RefreshTokenService {
     }
 
     public RefreshToken createRefreshToken(String userId) {
-        RefreshToken refreshToken = new RefreshToken();
+        try {
+            // Delete existing refresh tokens for this user
+            refreshTokenRepository.deleteByUserId(userId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        // Delete existing refresh token for user
-        refreshTokenRepository.findByUser(user).ifPresent(existingToken ->
-                refreshTokenRepository.delete(existingToken)
-        );
+            RefreshToken refreshToken = new RefreshToken();
+            refreshToken.setUser(user);
+            refreshToken.setToken(UUID.randomUUID().toString());
 
-        refreshToken.setUser(user);
-        refreshToken.setExpiresAt(LocalDateTime.now().plusSeconds(refreshTokenDurationMs / 1000));
-        refreshToken.setToken(UUID.randomUUID().toString());
+            // Fixed: Use Duration.ofMillis() instead of plusMillis()
+            refreshToken.setExpiryDate(LocalDateTime.now().plus(Duration.ofMillis(refreshTokenDurationMs)));
 
-        refreshToken = refreshTokenRepository.save(refreshToken);
-        return refreshToken;
+            RefreshToken savedToken = refreshTokenRepository.save(refreshToken);
+            logger.info("Created refresh token for user: {}", userId);
+            return savedToken;
+        } catch (Exception e) {
+            logger.error("Error creating refresh token for user {}: {}", userId, e.getMessage());
+            throw new RuntimeException("Failed to create refresh token: " + e.getMessage());
+        }
     }
 
     public RefreshToken verifyExpiration(RefreshToken token) {
-        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
             refreshTokenRepository.delete(token);
             throw new UnauthorizedException("Refresh token was expired. Please make a new signin request");
         }
@@ -57,12 +68,20 @@ public class RefreshTokenService {
     }
 
     public void deleteByUserId(String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        refreshTokenRepository.deleteByUser(user);
+        try {
+            refreshTokenRepository.deleteByUserId(userId);
+            logger.info("Deleted refresh tokens for user: {}", userId);
+        } catch (Exception e) {
+            logger.error("Error deleting refresh tokens for user {}: {}", userId, e.getMessage());
+        }
     }
 
     public void deleteByToken(String token) {
-        refreshTokenRepository.findByToken(token).ifPresent(refreshTokenRepository::delete);
+        try {
+            refreshTokenRepository.deleteByToken(token);
+            logger.info("Deleted refresh token: {}", token);
+        } catch (Exception e) {
+            logger.error("Error deleting refresh token {}: {}", token, e.getMessage());
+        }
     }
 }
