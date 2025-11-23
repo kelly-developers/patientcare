@@ -33,6 +33,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
             String jwt = parseJwt(request);
+
+            // Skip JWT processing for auth endpoints
+            if (isAuthEndpoint(request)) {
+                logger.debug("Skipping JWT filter for auth endpoint: {}", request.getRequestURI());
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             if (jwt != null) {
                 if (jwtService.validateJwtToken(jwt)) {
                     String username = jwtService.getUsernameFromJwtToken(jwt);
@@ -46,7 +54,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     logger.debug("Authenticated user: {}", username);
                 } else {
                     logger.warn("Invalid JWT token for request: {}", request.getRequestURI());
+                    // Don't set authentication - let it remain anonymous
                 }
+            } else {
+                logger.debug("No JWT token found in request for: {}", request.getRequestURI());
             }
         } catch (UsernameNotFoundException e) {
             logger.error("User not found for JWT token: {}", e.getMessage());
@@ -70,5 +81,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         logger.debug("No JWT token found in request");
         return null;
+    }
+
+    private boolean isAuthEndpoint(HttpServletRequest request) {
+        String requestURI = request.getRequestURI();
+        return requestURI.startsWith("/api/auth/") &&
+                !requestURI.equals("/api/auth/verify") &&
+                !requestURI.equals("/api/auth/refresh");
     }
 }
