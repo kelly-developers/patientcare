@@ -2,7 +2,9 @@ package com.example.patientcare.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SecurityException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,13 +28,11 @@ public class JwtService {
     @Value("${app.jwt.refresh-expiration-ms:604800000}")
     private int refreshTokenExpirationMs;
 
-    // Method for Authentication object
     public String generateJwtToken(Authentication authentication) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         return generateJwtToken(userPrincipal.getUsername());
     }
 
-    // Method for username string
     public String generateJwtToken(String username) {
         try {
             SecretKey key = getSigningKey();
@@ -64,6 +64,9 @@ public class JwtService {
                     .parseSignedClaims(token)
                     .getPayload()
                     .getSubject();
+        } catch (ExpiredJwtException e) {
+            logger.warn("JWT token expired but extracting username: {}", e.getMessage());
+            return e.getClaims().getSubject();
         } catch (Exception e) {
             logger.error("Error extracting username from JWT: {}", e.getMessage());
             throw new RuntimeException("Invalid JWT token", e);
@@ -72,15 +75,29 @@ public class JwtService {
 
     public boolean validateJwtToken(String authToken) {
         try {
+            if (authToken == null || authToken.trim().isEmpty()) {
+                logger.error("JWT token is null or empty");
+                return false;
+            }
+
+            // Check if it looks like a JWT token (should have 2 or 4 dots)
+            int dotCount = authToken.length() - authToken.replace(".", "").length();
+            if (dotCount != 2 && dotCount != 4) {
+                logger.error("Invalid JWT token format. Expected 2 or 4 dots, found: {}", dotCount);
+                return false;
+            }
+
             Jwts.parser()
                     .verifyWith(getSigningKey())
                     .build()
                     .parseSignedClaims(authToken);
             return true;
-        } catch (MalformedJwtException e) {
-            logger.error("Invalid JWT token: {}", e.getMessage());
         } catch (ExpiredJwtException e) {
             logger.error("JWT token is expired: {}", e.getMessage());
+        } catch (MalformedJwtException e) {
+            logger.error("Invalid JWT token: {}", e.getMessage());
+        } catch (SecurityException e) {
+            logger.error("JWT signature validation failed: {}", e.getMessage());
         } catch (UnsupportedJwtException e) {
             logger.error("JWT token is unsupported: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
@@ -97,7 +114,7 @@ public class JwtService {
             byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
             logger.debug("JWT secret successfully decoded as Base64");
             return Keys.hmacShaKeyFor(keyBytes);
-        } catch (Exception e) {
+        } catch (DecodingException | IllegalArgumentException e) {
             logger.warn("JWT secret is not Base64 encoded, using as plain text. Length: {}", jwtSecret.length());
 
             // If not Base64, use the string directly but ensure it's long enough
@@ -117,15 +134,21 @@ public class JwtService {
         return refreshTokenExpirationMs;
     }
 
-    // Method to validate your JWT secret (call this during startup)
     public void validateJwtSecret() {
         try {
             SecretKey key = getSigningKey();
             logger.info("JWT secret validation successful");
 
-            // Test token generation
-            String testToken = generateJwtToken("test");
-            logger.info("JWT token generation test successful");
+            // Test token generation and validation
+            String testToken = generateJwtToken("test-user");
+            boolean isValid = validateJwtToken(testToken);
+            String username = getUsernameFromJwtToken(testToken);
+
+            if (isValid && "test-user".equals(username)) {
+                logger.info("JWT token generation and validation test successful");
+            } else {
+                throw new RuntimeException("JWT test failed: token validation unsuccessful");
+            }
         } catch (Exception e) {
             logger.error("JWT secret validation failed: {}", e.getMessage());
             throw new RuntimeException("JWT secret configuration error", e);
