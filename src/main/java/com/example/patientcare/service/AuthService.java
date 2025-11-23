@@ -13,6 +13,8 @@ import com.example.patientcare.repository.RefreshTokenRepository;
 import com.example.patientcare.repository.UserRepository;
 import com.example.patientcare.security.JwtService;
 import com.example.patientcare.security.UserPrincipal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,6 +30,7 @@ import java.util.Optional;
 @Service
 @Transactional
 public class AuthService {
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -48,23 +51,40 @@ public class AuthService {
     private JwtService jwtService;
 
     public AuthResponse login(LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
-        );
+        logger.info("Attempting login for user: {}", loginRequest.getUsername());
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
+            );
 
-        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        String token = jwtService.generateJwtToken(authentication);
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(userPrincipal.getId());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        User user = userRepository.findById(userPrincipal.getId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            String token = jwtService.generateJwtToken(authentication);
 
-        return new AuthResponse(token, refreshToken.getToken(), new UserResponse(user));
+            // Validate token structure immediately
+            if (token == null || token.trim().isEmpty()) {
+                throw new RuntimeException("Generated JWT token is null or empty");
+            }
+
+            logger.info("JWT token generated successfully for user: {}", userPrincipal.getUsername());
+
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(userPrincipal.getId());
+
+            User user = userRepository.findById(userPrincipal.getId())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            return new AuthResponse(token, refreshToken.getToken(), new UserResponse(user));
+        } catch (Exception e) {
+            logger.error("Login failed for user {}: {}", loginRequest.getUsername(), e.getMessage());
+            throw e;
+        }
     }
 
     public AuthResponse register(SignupRequest signupRequest) {
+        logger.info("Attempting registration for user: {}", signupRequest.getUsername());
+
         // Check if username exists
         if (userRepository.existsByUsername(signupRequest.getUsername())) {
             throw new RuntimeException("Username is already taken");
@@ -86,9 +106,16 @@ public class AuthService {
         user.setRole(signupRequest.getRole() != null ? signupRequest.getRole() : User.Role.PATIENT);
 
         User savedUser = userRepository.save(user);
+        logger.info("User registered successfully: {}", savedUser.getUsername());
 
         // Generate tokens
         String token = jwtService.generateJwtToken(savedUser.getUsername());
+
+        // Validate token structure
+        if (token == null || token.trim().isEmpty()) {
+            throw new RuntimeException("Generated JWT token is null or empty");
+        }
+
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(savedUser.getId());
 
         return new AuthResponse(token, refreshToken.getToken(), new UserResponse(savedUser));
@@ -96,16 +123,27 @@ public class AuthService {
 
     public TokenRefreshResponse refreshToken(RefreshTokenRequest request) {
         String requestRefreshToken = request.getRefreshToken();
+        logger.info("Attempting token refresh");
 
         return refreshTokenService.findByToken(requestRefreshToken)
                 .map(refreshTokenService::verifyExpiration)
                 .map(RefreshToken::getUser)
                 .map(user -> {
                     String token = jwtService.generateJwtToken(user.getUsername());
+
+                    // Validate new token structure
+                    if (token == null || token.trim().isEmpty()) {
+                        throw new RuntimeException("Generated JWT token during refresh is null or empty");
+                    }
+
                     RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user.getId());
+                    logger.info("Token refresh successful for user: {}", user.getUsername());
                     return new TokenRefreshResponse(token, newRefreshToken.getToken());
                 })
-                .orElseThrow(() -> new UnauthorizedException("Refresh token is not in database"));
+                .orElseThrow(() -> {
+                    logger.error("Refresh token not found in database");
+                    return new UnauthorizedException("Refresh token is not in database");
+                });
     }
 
     public void logout() {
@@ -113,14 +151,18 @@ public class AuthService {
         if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal) {
             UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
             refreshTokenService.deleteByUserId(userPrincipal.getId());
+            logger.info("User logged out: {}", userPrincipal.getUsername());
         }
     }
 
     public void logout(String refreshToken) {
         refreshTokenService.deleteByToken(refreshToken);
+        logger.info("User logged out via refresh token");
     }
 
     public boolean verifyToken(String token) {
-        return jwtService.validateJwtToken(token);
+        boolean isValid = jwtService.validateJwtToken(token);
+        logger.debug("Token verification result: {}", isValid);
+        return isValid;
     }
 }
