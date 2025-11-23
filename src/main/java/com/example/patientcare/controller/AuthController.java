@@ -9,6 +9,8 @@ import com.example.patientcare.dto.response.TokenRefreshResponse;
 import com.example.patientcare.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,27 +19,13 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
-    @PostMapping("/login")
-    public ResponseEntity<ApiResponse> login(@Valid @RequestBody LoginRequest request) {
-        try {
-            AuthResponse response = authService.login(request);
-            return ResponseEntity.ok(ApiResponse.builder()
-                    .success(true)
-                    .message("Login successful")
-                    .data(response)
-                    .build());
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.builder()
-                    .success(false)
-                    .message(e.getMessage())
-                    .build());
-        }
-    }
+    private final AuthService authService;
 
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse> signup(@Valid @RequestBody SignupRequest request) {
+        logger.info("Signup request for user: {}", request.getUsername());
         try {
             AuthResponse response = authService.signup(request);
             return ResponseEntity.ok(ApiResponse.builder()
@@ -46,6 +34,7 @@ public class AuthController {
                     .data(response)
                     .build());
         } catch (Exception e) {
+            logger.error("Signup failed for user: {}", request.getUsername(), e);
             return ResponseEntity.badRequest().body(ApiResponse.builder()
                     .success(false)
                     .message(e.getMessage())
@@ -53,8 +42,28 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse> login(@Valid @RequestBody LoginRequest request) {
+        logger.info("Login request for user: {}", request.getUsername());
+        try {
+            AuthResponse response = authService.login(request);
+            return ResponseEntity.ok(ApiResponse.builder()
+                    .success(true)
+                    .message("Login successful")
+                    .data(response)
+                    .build());
+        } catch (Exception e) {
+            logger.error("Login failed for user: {}", request.getUsername(), e);
+            return ResponseEntity.badRequest().body(ApiResponse.builder()
+                    .success(false)
+                    .message("Invalid credentials")
+                    .build());
+        }
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        logger.info("Token refresh request");
         try {
             TokenRefreshResponse response = authService.refreshToken(request);
             return ResponseEntity.ok(ApiResponse.builder()
@@ -63,6 +72,7 @@ public class AuthController {
                     .data(response)
                     .build());
         } catch (Exception e) {
+            logger.error("Token refresh failed", e);
             return ResponseEntity.badRequest().body(ApiResponse.builder()
                     .success(false)
                     .message(e.getMessage())
@@ -71,15 +81,19 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse> logout(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<ApiResponse> logout(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        logger.info("Logout request");
         try {
-            String refreshToken = authHeader.substring(7); // Remove "Bearer " prefix
-            authService.logout(refreshToken);
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String refreshToken = authHeader.substring(7);
+                authService.logout(refreshToken);
+            }
             return ResponseEntity.ok(ApiResponse.builder()
                     .success(true)
                     .message("Logout successful")
                     .build());
         } catch (Exception e) {
+            logger.error("Logout failed", e);
             return ResponseEntity.badRequest().body(ApiResponse.builder()
                     .success(false)
                     .message(e.getMessage())
@@ -88,16 +102,26 @@ public class AuthController {
     }
 
     @GetMapping("/verify")
-    public ResponseEntity<ApiResponse> verifyToken(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<ApiResponse> verifyToken(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        logger.info("Token verification request");
         try {
-            String token = authHeader.substring(7); // Remove "Bearer " prefix
-            boolean isValid = authService.verifyToken(token);
-            return ResponseEntity.ok(ApiResponse.builder()
-                    .success(true)
-                    .message("Token verification completed")
-                    .data(isValid)
-                    .build());
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                boolean isValid = authService.verifyToken(token);
+                return ResponseEntity.ok(ApiResponse.builder()
+                        .success(true)
+                        .message("Token verification completed")
+                        .data(isValid)
+                        .build());
+            } else {
+                return ResponseEntity.ok(ApiResponse.builder()
+                        .success(false)
+                        .message("No token provided")
+                        .data(false)
+                        .build());
+            }
         } catch (Exception e) {
+            logger.error("Token verification failed", e);
             return ResponseEntity.badRequest().body(ApiResponse.builder()
                     .success(false)
                     .message(e.getMessage())
@@ -107,6 +131,7 @@ public class AuthController {
 
     @GetMapping("/health")
     public ResponseEntity<ApiResponse> healthCheck() {
+        logger.info("Health check request");
         return ResponseEntity.ok(ApiResponse.builder()
                 .success(true)
                 .message("Authentication service is running")

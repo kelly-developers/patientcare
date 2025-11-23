@@ -1,6 +1,6 @@
 package com.example.patientcare.config;
 
-import com.example.patientcare.config.JwtAuthenticationFilter;
+import com.example.patientcare.security.JwtAuthenticationFilter;
 import com.example.patientcare.security.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -33,9 +33,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/health/**").permitAll()
-                        .requestMatchers("/error").permitAll()
+                        // Allow all auth endpoints with and without /api prefix
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/auth/**",
+                                "/api/health/**",
+                                "/health/**",
+                                "/error"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
