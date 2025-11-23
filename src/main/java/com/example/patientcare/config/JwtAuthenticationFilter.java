@@ -34,14 +34,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = parseJwt(request);
 
-            // Skip JWT processing for auth endpoints
+            // Skip JWT processing for ALL auth endpoints
             if (isAuthEndpoint(request)) {
                 logger.debug("Skipping JWT filter for auth endpoint: {}", request.getRequestURI());
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            if (jwt != null) {
+            if (jwt != null && StringUtils.hasText(jwt)) {
                 if (jwtService.validateJwtToken(jwt)) {
                     String username = jwtService.getUsernameFromJwtToken(jwt);
 
@@ -61,8 +61,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         } catch (UsernameNotFoundException e) {
             logger.error("User not found for JWT token: {}", e.getMessage());
+            // Clear security context if user not found
+            SecurityContextHolder.clearContext();
         } catch (Exception e) {
             logger.error("Cannot set user authentication: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
@@ -85,8 +88,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private boolean isAuthEndpoint(HttpServletRequest request) {
         String requestURI = request.getRequestURI();
-        return requestURI.startsWith("/api/auth/") &&
-                !requestURI.equals("/api/auth/verify") &&
-                !requestURI.equals("/api/auth/refresh");
+        // Skip JWT processing for ALL auth endpoints including verify and refresh
+        return requestURI.startsWith("/api/auth/");
     }
 }
