@@ -1,6 +1,6 @@
 package com.example.patientcare.config;
 
-import com.example.patientcare.security.JwtAuthenticationFilter;
+import com.example.patientcare.config.JwtAuthenticationFilter;
 import com.example.patientcare.security.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
