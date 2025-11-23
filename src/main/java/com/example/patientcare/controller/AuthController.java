@@ -15,8 +15,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping({"/api/auth", "/auth"}) // Handle both paths
+@RequestMapping({"/api/auth", "/auth"})
 @RequiredArgsConstructor
+@CrossOrigin(origins = {"https://patientcares.netlify.app", "http://localhost:3000", "https://localhost:3000", "http://localhost:5173", "https://localhost:5173"})
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
@@ -135,7 +136,7 @@ public class AuthController {
 
     @GetMapping("/health")
     public ResponseEntity<ApiResponse> healthCheck() {
-        logger.info("Health check request");
+        logger.info("Auth health check request");
         return ResponseEntity.ok(ApiResponse.builder()
                 .success(true)
                 .message("Authentication service is running")

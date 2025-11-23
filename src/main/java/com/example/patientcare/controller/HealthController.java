@@ -1,71 +1,59 @@
 package com.example.patientcare.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/health")
-@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.OPTIONS})
+@RequestMapping({"/api/health", "/health"})
 public class HealthController {
 
+    private static final Logger logger = LoggerFactory.getLogger(HealthController.class);
+
     @GetMapping
-    public ResponseEntity<HealthResponse> healthCheck() {
-        return ResponseEntity.ok(new HealthResponse("OK", "Server is running"));
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        logger.info("Health check endpoint called");
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "UP");
+        response.put("service", "PatientCare Backend");
+        response.put("timestamp", System.currentTimeMillis());
+        response.put("version", "1.0.0");
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/detailed")
-    public ResponseEntity<DetailedHealthResponse> detailedHealthCheck() {
-        return ResponseEntity.ok(new DetailedHealthResponse(
-                "OK",
-                "PatientCare Backend Service",
-                System.currentTimeMillis(),
-                "1.0.0"
-        ));
+    public ResponseEntity<Map<String, Object>> detailedHealthCheck() {
+        logger.info("Detailed health check endpoint called");
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "UP");
+        response.put("service", "PatientCare Backend");
+        response.put("timestamp", System.currentTimeMillis());
+        response.put("version", "1.0.0");
+
+        // System information
+        Runtime runtime = Runtime.getRuntime();
+        Map<String, Object> systemInfo = new HashMap<>();
+        systemInfo.put("availableProcessors", runtime.availableProcessors());
+        systemInfo.put("freeMemory", runtime.freeMemory());
+        systemInfo.put("maxMemory", runtime.maxMemory());
+        systemInfo.put("totalMemory", runtime.totalMemory());
+
+        response.put("system", systemInfo);
+
+        return ResponseEntity.ok(response);
     }
 
-    // Handle OPTIONS requests for preflight
-    @RequestMapping(method = RequestMethod.OPTIONS)
-    public ResponseEntity<?> options() {
-        return ResponseEntity.ok().build();
-    }
-
-    public static class HealthResponse {
-        private String status;
-        private String message;
-
-        public HealthResponse(String status, String message) {
-            this.status = status;
-            this.message = message;
-        }
-
-        // Getters and setters
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
-    }
-
-    public static class DetailedHealthResponse {
-        private String status;
-        private String service;
-        private long timestamp;
-        private String version;
-
-        public DetailedHealthResponse(String status, String service, long timestamp, String version) {
-            this.status = status;
-            this.service = service;
-            this.timestamp = timestamp;
-            this.version = version;
-        }
-
-        // Getters and setters
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
-        public String getService() { return service; }
-        public void setService(String service) { this.service = service; }
-        public long getTimestamp() { return timestamp; }
-        public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
-        public String getVersion() { return version; }
-        public void setVersion(String version) { this.version = version; }
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
+        return ResponseEntity.ok("pong");
     }
 }

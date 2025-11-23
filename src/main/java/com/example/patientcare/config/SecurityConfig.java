@@ -33,16 +33,18 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Allow all auth endpoints with and without /api prefix
+                        // Public endpoints
                         .requestMatchers(
+                                "/",
+                                "/health",
+                                "/health/**",
+                                "/api/health",
+                                "/api/health/**",
                                 "/api/auth/**",
                                 "/auth/**",
-                                "/api/health/**",
-                                "/health/**",
-                                "/error",
-                                "/"
+                                "/error"
                         ).permitAll()
-                        // Allow preflight requests
+                        // Allow OPTIONS requests for CORS preflight
                         .requestMatchers("/**").permitAll()
                         .anyRequest().authenticated()
                 )
