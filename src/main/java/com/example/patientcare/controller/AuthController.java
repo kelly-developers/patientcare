@@ -15,7 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping({"/api/auth", "/auth"}) // Handle both paths
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -28,6 +28,7 @@ public class AuthController {
         logger.info("Signup request for user: {}", request.getUsername());
         try {
             AuthResponse response = authService.signup(request);
+            logger.info("Signup successful for user: {}", request.getUsername());
             return ResponseEntity.ok(ApiResponse.builder()
                     .success(true)
                     .message("User registered successfully")
@@ -47,6 +48,7 @@ public class AuthController {
         logger.info("Login request for user: {}", request.getUsername());
         try {
             AuthResponse response = authService.login(request);
+            logger.info("Login successful for user: {}", request.getUsername());
             return ResponseEntity.ok(ApiResponse.builder()
                     .success(true)
                     .message("Login successful")
@@ -66,6 +68,7 @@ public class AuthController {
         logger.info("Token refresh request");
         try {
             TokenRefreshResponse response = authService.refreshToken(request);
+            logger.info("Token refresh successful");
             return ResponseEntity.ok(ApiResponse.builder()
                     .success(true)
                     .message("Token refreshed successfully")
@@ -88,6 +91,7 @@ public class AuthController {
                 String refreshToken = authHeader.substring(7);
                 authService.logout(refreshToken);
             }
+            logger.info("Logout successful");
             return ResponseEntity.ok(ApiResponse.builder()
                     .success(true)
                     .message("Logout successful")
