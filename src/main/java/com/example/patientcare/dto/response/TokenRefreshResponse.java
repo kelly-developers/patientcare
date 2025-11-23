@@ -1,11 +1,10 @@
+// TokenRefreshResponse.java
 package com.example.patientcare.dto.response;
 
 public class TokenRefreshResponse {
     private String token;
     private String refreshToken;
-    private String type = "Bearer";
 
-    // Constructors
     public TokenRefreshResponse() {}
 
     public TokenRefreshResponse(String token, String refreshToken) {
@@ -19,7 +18,4 @@ public class TokenRefreshResponse {
 
     public String getRefreshToken() { return refreshToken; }
     public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }
-
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
 }

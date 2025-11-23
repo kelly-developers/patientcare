@@ -1,8 +1,7 @@
+// UserResponse.java
 package com.example.patientcare.dto.response;
 
 import com.example.patientcare.entity.User;
-
-import java.time.LocalDateTime;
 
 public class UserResponse {
     private String id;
@@ -12,9 +11,7 @@ public class UserResponse {
     private String lastName;
     private String phone;
     private User.Role role;
-    private LocalDateTime createdAt;
 
-    // Constructors
     public UserResponse() {}
 
     public UserResponse(User user) {
@@ -25,7 +22,6 @@ public class UserResponse {
         this.lastName = user.getLastName();
         this.phone = user.getPhone();
         this.role = user.getRole();
-        this.createdAt = user.getCreatedAt();
     }
 
     // Getters and Setters
@@ -49,7 +45,4 @@ public class UserResponse {
 
     public User.Role getRole() { return role; }
     public void setRole(User.Role role) { this.role = role; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

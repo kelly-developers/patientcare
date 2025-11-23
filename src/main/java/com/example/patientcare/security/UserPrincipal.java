@@ -28,7 +28,8 @@ public class UserPrincipal implements UserDetails {
     }
 
     public static UserPrincipal create(User user) {
-        GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
+        String role = "ROLE_" + user.getRole().name();
+        GrantedAuthority authority = new SimpleGrantedAuthority(role);
 
         return new UserPrincipal(
                 user.getId(),

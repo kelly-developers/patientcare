@@ -19,7 +19,7 @@ import java.util.UUID;
 public class JwtService {
     private static final Logger logger = LoggerFactory.getLogger(JwtService.class);
 
-    @Value("${app.jwt.secret}")
+    @Value("${app.jwt.secret:defaultSecretKeyThatIsAtLeast32CharactersLong}")
     private String jwtSecret;
 
     @Value("${app.jwt.expiration-ms:900000}")
@@ -28,11 +28,13 @@ public class JwtService {
     @Value("${app.jwt.refresh-expiration-ms:604800000}")
     private int refreshTokenExpirationMs;
 
+    // Method for Authentication object
     public String generateJwtToken(Authentication authentication) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         return generateJwtToken(userPrincipal.getUsername());
     }
 
+    // Method for username string
     public String generateJwtToken(String username) {
         try {
             SecretKey key = getSigningKey();
@@ -80,10 +82,10 @@ public class JwtService {
                 return false;
             }
 
-            // Check if it looks like a JWT token (should have 2 or 4 dots)
+            // Check if it looks like a JWT token (should have 2 dots)
             int dotCount = authToken.length() - authToken.replace(".", "").length();
-            if (dotCount != 2 && dotCount != 4) {
-                logger.error("Invalid JWT token format. Expected 2 or 4 dots, found: {}", dotCount);
+            if (dotCount != 2) {
+                logger.error("Invalid JWT token format. Expected 2 dots, found: {}", dotCount);
                 return false;
             }
 
