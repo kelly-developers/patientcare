@@ -1,6 +1,5 @@
 package com.example.patientcare.config;
 
-import com.example.patientcare.config.JwtAuthenticationFilter;
 import com.example.patientcare.security.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -25,11 +24,12 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CorsConfig corsConfig;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configure(http))
+                .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -39,8 +39,11 @@ public class SecurityConfig {
                                 "/auth/**",
                                 "/api/health/**",
                                 "/health/**",
-                                "/error"
+                                "/error",
+                                "/"
                         ).permitAll()
+                        // Allow preflight requests
+                        .requestMatchers("/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())

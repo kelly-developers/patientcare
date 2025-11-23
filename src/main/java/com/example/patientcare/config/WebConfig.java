@@ -8,7 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${app.cors.allowed-origins:https://patientcares.netlify.app,http://localhost:3000,https://localhost:3000,http://localhost:5173,https://localhost:5173}")
+    @Value("${cors.allowed.origins:https://patientcareportal.netlify.app,https://patientcares.netlify.app,http://localhost:3000,https://localhost:3000,http://localhost:5173,https://localhost:5173}")
     private String allowedOrigins;
 
     @Override
@@ -16,10 +16,10 @@ public class WebConfig implements WebMvcConfigurer {
         String[] origins = allowedOrigins.split(",");
 
         registry.addMapping("/**")
-                .allowedOriginPatterns(origins)
+                .allowedOrigins(origins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD")
                 .allowedHeaders("*")
-                .exposedHeaders("Authorization", "Content-Disposition")
+                .exposedHeaders("Authorization", "Content-Disposition", "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials")
                 .allowCredentials(true)
                 .maxAge(3600);
     }

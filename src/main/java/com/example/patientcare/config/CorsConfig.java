@@ -13,7 +13,7 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
-    @Value("${cors.allowed.origins}")
+    @Value("${cors.allowed.origins:https://patientcareportal.netlify.app,https://patientcares.netlify.app,http://localhost:3000,https://localhost:3000,http://localhost:5173,https://localhost:5173}")
     private String allowedOrigins;
 
     @Bean
@@ -23,9 +23,9 @@ public class CorsConfig {
         // Parse the comma-separated origins
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
         configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept"));
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition", "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
