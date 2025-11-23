@@ -5,7 +5,7 @@ import lombok.Data;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Map;
+import java.util.*;
 import java.util.UUID;
 
 @Data
@@ -42,22 +42,74 @@ public class PatientResponse {
 
     // Helper methods for frontend compatibility
     public Map<String, Object> getResearch_consent() {
-        return Map.of(
-                "dataUse", researchConsent != null ? researchConsent : false,
-                "futureContact", futureContactConsent != null ? futureContactConsent : false,
-                "anonymizedData", anonymizedDataConsent != null ? anonymizedDataConsent : false,
-                "specificStudies", java.util.Collections.emptyList(),
-                "consentDate", researchConsentDate
-        );
+        Map<String, Object> researchConsentMap = new HashMap<>();
+        researchConsentMap.put("dataUse", researchConsent != null ? researchConsent : false);
+        researchConsentMap.put("futureContact", futureContactConsent != null ? futureContactConsent : false);
+        researchConsentMap.put("anonymizedData", anonymizedDataConsent != null ? anonymizedDataConsent : false);
+        researchConsentMap.put("specificStudies", Collections.emptyList());
+        researchConsentMap.put("consentDate", researchConsentDate);
+        return researchConsentMap;
     }
 
     public Map<String, Object> getSample_storage() {
-        return Map.of(
-                "storeSamples", sampleStorageConsent != null ? sampleStorageConsent : false,
-                "sampleTypes", sampleTypes != null ? java.util.Arrays.asList(sampleTypes.split(",")) : java.util.Collections.emptyList(),
-                "storageDuration", storageDuration != null ? storageDuration : "5years",
-                "futureResearchUse", futureResearchUseConsent != null ? futureResearchUseConsent : false,
-                "destructionConsent", destructionConsent != null ? destructionConsent : false
-        );
+        Map<String, Object> sampleStorageMap = new HashMap<>();
+        sampleStorageMap.put("storeSamples", sampleStorageConsent != null ? sampleStorageConsent : false);
+
+        // Handle sample types conversion
+        List<String> sampleTypesList = new ArrayList<>();
+        if (sampleTypes != null && !sampleTypes.trim().isEmpty()) {
+            sampleTypesList = Arrays.asList(sampleTypes.split(","));
+        }
+        sampleStorageMap.put("sampleTypes", sampleTypesList);
+
+        sampleStorageMap.put("storageDuration", storageDuration != null ? storageDuration : "5years");
+        sampleStorageMap.put("futureResearchUse", futureResearchUseConsent != null ? futureResearchUseConsent : false);
+        sampleStorageMap.put("destructionConsent", destructionConsent != null ? destructionConsent : false);
+        return sampleStorageMap;
+    }
+
+    // Additional getters for frontend compatibility
+    public String getFirst_name() {
+        return firstName;
+    }
+
+    public String getLast_name() {
+        return lastName;
+    }
+
+    public String getDate_of_birth() {
+        return dateOfBirth != null ? dateOfBirth.toString() : null;
+    }
+
+    public String getEmergency_contact_name() {
+        return emergencyContactName;
+    }
+
+    public String getEmergency_contact_phone() {
+        return emergencyContactPhone;
+    }
+
+    public String getMedical_history() {
+        return medicalHistory;
+    }
+
+    public String getCurrent_medications() {
+        return currentMedications;
+    }
+
+    public Boolean getResearch_consent_flag() {
+        return researchConsent;
+    }
+
+    public String getResearch_consent_date() {
+        return researchConsentDate != null ? researchConsentDate.toString() : null;
+    }
+
+    public String getCreated_at() {
+        return createdAt != null ? createdAt.toString() : null;
+    }
+
+    public String getUpdated_at() {
+        return updatedAt != null ? updatedAt.toString() : null;
     }
 }
