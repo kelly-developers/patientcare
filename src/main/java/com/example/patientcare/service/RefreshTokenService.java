@@ -22,7 +22,7 @@ import java.util.UUID;
 public class RefreshTokenService {
     private static final Logger logger = LoggerFactory.getLogger(RefreshTokenService.class);
 
-    @Value("${app.jwt.refresh-expiration-ms:604800000}") // 7 days default
+    @Value("${app.jwt.refresh-expiration:604800000}") // 7 days default
     private Long refreshTokenDurationMs;
 
     @Autowired
@@ -37,18 +37,20 @@ public class RefreshTokenService {
 
     public RefreshToken createRefreshToken(String userId) {
         try {
-            // Delete existing refresh tokens for this user
-            refreshTokenRepository.deleteByUserId(userId);
+            // Convert String userId to UUID
+            UUID userUuid = UUID.fromString(userId);
 
-            User user = userRepository.findById(userId)
+            // Delete existing refresh tokens for this user
+            refreshTokenRepository.deleteByUserId(userUuid);
+
+            User user = userRepository.findById(userUuid)
                     .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-            RefreshToken refreshToken = new RefreshToken();
-            refreshToken.setUser(user);
-            refreshToken.setToken(UUID.randomUUID().toString());
-
-            // Fixed: Use Duration.ofMillis() instead of plusMillis()
-            refreshToken.setExpiryDate(LocalDateTime.now().plus(Duration.ofMillis(refreshTokenDurationMs)));
+            RefreshToken refreshToken = RefreshToken.builder()
+                    .user(user)
+                    .token(UUID.randomUUID().toString())
+                    .expiresAt(LocalDateTime.now().plus(Duration.ofMillis(refreshTokenDurationMs)))
+                    .build();
 
             RefreshToken savedToken = refreshTokenRepository.save(refreshToken);
             logger.info("Created refresh token for user: {}", userId);
@@ -60,7 +62,7 @@ public class RefreshTokenService {
     }
 
     public RefreshToken verifyExpiration(RefreshToken token) {
-        if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
             refreshTokenRepository.delete(token);
             throw new UnauthorizedException("Refresh token was expired. Please make a new signin request");
         }
@@ -69,7 +71,8 @@ public class RefreshTokenService {
 
     public void deleteByUserId(String userId) {
         try {
-            refreshTokenRepository.deleteByUserId(userId);
+            UUID userUuid = UUID.fromString(userId);
+            refreshTokenRepository.deleteByUserId(userUuid);
             logger.info("Deleted refresh tokens for user: {}", userId);
         } catch (Exception e) {
             logger.error("Error deleting refresh tokens for user {}: {}", userId, e.getMessage());
@@ -82,6 +85,25 @@ public class RefreshTokenService {
             logger.info("Deleted refresh token: {}", token);
         } catch (Exception e) {
             logger.error("Error deleting refresh token {}: {}", token, e.getMessage());
+        }
+    }
+
+    // Additional utility methods
+    public void cleanupExpiredTokens() {
+        try {
+            refreshTokenRepository.deleteByExpiresAtBefore(LocalDateTime.now());
+            logger.info("Cleaned up expired refresh tokens");
+        } catch (Exception e) {
+            logger.error("Error cleaning up expired tokens: {}", e.getMessage());
+        }
+    }
+
+    public void deleteByUser(User user) {
+        try {
+            refreshTokenRepository.deleteByUser(user);
+            logger.info("Deleted refresh tokens for user: {}", user.getUsername());
+        } catch (Exception e) {
+            logger.error("Error deleting refresh tokens for user {}: {}", user.getUsername(), e.getMessage());
         }
     }
 }

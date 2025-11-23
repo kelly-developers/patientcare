@@ -8,12 +8,12 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface PatientRepository extends JpaRepository<Patient, String> {
+public interface PatientRepository extends JpaRepository<Patient, UUID> {
     Optional<Patient> findByPatientId(String patientId);
     Boolean existsByPatientId(String patientId);
-    Boolean existsByEmail(String email);
 
     @Query("SELECT p FROM Patient p WHERE " +
             "LOWER(p.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
@@ -23,6 +23,4 @@ public interface PatientRepository extends JpaRepository<Patient, String> {
     List<Patient> searchPatients(@Param("query") String query);
 
     List<Patient> findByResearchConsentTrue();
-
-    List<Patient> findByIdIn(List<String> ids);
 }
