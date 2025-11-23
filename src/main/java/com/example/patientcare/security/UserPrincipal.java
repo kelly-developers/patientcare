@@ -1,36 +1,67 @@
 package com.example.patientcare.security;
 
 import com.example.patientcare.entity.User;
-import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.List;
+import java.util.Collections;
+import java.util.Objects;
 
-@Getter
 public class UserPrincipal implements UserDetails {
+    private String id;
+    private String username;
+    private String email;
+    @JsonIgnore
+    private String password;
+    private Collection<? extends GrantedAuthority> authorities;
 
-    private final User user;
-
-    public UserPrincipal(User user) {
-        this.user = user;
+    public UserPrincipal(String id, String username, String email, String password,
+                         Collection<? extends GrantedAuthority> authorities) {
+        this.id = id;
+        this.username = username;
+        this.email = email;
+        this.password = password;
+        this.authorities = authorities;
     }
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+    public static UserPrincipal create(User user) {
+        Collection<GrantedAuthority> authorities = Collections.singletonList(
+                new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
+        );
+
+        return new UserPrincipal(
+                user.getId().toString(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getPasswordHash(),
+                authorities
+        );
     }
 
-    @Override
-    public String getPassword() {
-        return user.getPassword();
+    public String getId() {
+        return id;
+    }
+
+    public String getEmail() {
+        return email;
     }
 
     @Override
     public String getUsername() {
-        return user.getUsername();
+        return username;
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return authorities;
     }
 
     @Override
@@ -53,25 +84,16 @@ public class UserPrincipal implements UserDetails {
         return true;
     }
 
-    // Add this method to get the user ID
-    public String getId() {
-        return user.getId().toString();
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserPrincipal that = (UserPrincipal) o;
+        return Objects.equals(id, that.id);
     }
 
-    // Add other getter methods you might need
-    public String getEmail() {
-        return user.getEmail();
-    }
-
-    public String getFirstName() {
-        return user.getFirstName();
-    }
-
-    public String getLastName() {
-        return user.getLastName();
-    }
-
-    public User.UserRole getRole() {
-        return user.getRole();
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

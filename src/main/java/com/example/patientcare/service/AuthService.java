@@ -13,17 +13,25 @@ import com.example.patientcare.repository.RefreshTokenRepository;
 import com.example.patientcare.repository.UserRepository;
 import com.example.patientcare.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AuthService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -32,27 +40,37 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-        );
+        logger.info("Login attempt for user: {}", request.getUsername());
 
-        User user = userRepository.findByUsername(request.getUsername())
-                .or(() -> userRepository.findByEmail(request.getUsername()))
-                .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+            );
 
-        String jwt = jwtService.generateToken(user);
-        String refreshToken = jwtService.generateRefreshToken(user);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        saveRefreshToken(user, refreshToken);
+            User user = (User) authentication.getPrincipal();
+            String jwt = jwtService.generateToken(user);
+            String refreshToken = jwtService.generateRefreshToken(user);
 
-        return AuthResponse.builder()
-                .token(jwt)
-                .refreshToken(refreshToken)
-                .user(mapToUserResponse(user))
-                .build();
+            saveRefreshToken(user, refreshToken);
+
+            logger.info("Login successful for user: {}", user.getUsername());
+
+            return AuthResponse.builder()
+                    .token(jwt)
+                    .refreshToken(refreshToken)
+                    .user(mapToUserResponse(user))
+                    .build();
+        } catch (Exception e) {
+            logger.error("Login failed for user: {}", request.getUsername(), e);
+            throw new UnauthorizedException("Invalid credentials");
+        }
     }
 
     public AuthResponse signup(SignupRequest request) {
+        logger.info("Signup attempt for user: {}", request.getUsername());
+
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("Username already exists");
         }
@@ -61,38 +79,58 @@ public class AuthService {
             throw new IllegalArgumentException("Email already exists");
         }
 
-        User user = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .phone(request.getPhone())
-                .role(User.UserRole.valueOf(request.getRole().toUpperCase()))
-                .build();
+        try {
+            User.UserRole role;
+            try {
+                role = User.UserRole.valueOf(request.getRole().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                role = User.UserRole.PATIENT; // Default role
+            }
 
-        User savedUser = userRepository.save(user);
+            User user = User.builder()
+                    .username(request.getUsername())
+                    .email(request.getEmail())
+                    .passwordHash(passwordEncoder.encode(request.getPassword()))
+                    .firstName(request.getFirstName())
+                    .lastName(request.getLastName())
+                    .phone(request.getPhone())
+                    .role(role)
+                    .build();
 
-        String jwt = jwtService.generateToken(savedUser);
-        String refreshToken = jwtService.generateRefreshToken(savedUser);
+            User savedUser = userRepository.save(user);
 
-        saveRefreshToken(savedUser, refreshToken);
+            String jwt = jwtService.generateToken(savedUser);
+            String refreshToken = jwtService.generateRefreshToken(savedUser);
 
-        return AuthResponse.builder()
-                .token(jwt)
-                .refreshToken(refreshToken)
-                .user(mapToUserResponse(savedUser))
-                .build();
+            saveRefreshToken(savedUser, refreshToken);
+
+            logger.info("Signup successful for user: {}", savedUser.getUsername());
+
+            return AuthResponse.builder()
+                    .token(jwt)
+                    .refreshToken(refreshToken)
+                    .user(mapToUserResponse(savedUser))
+                    .build();
+        } catch (Exception e) {
+            logger.error("Signup failed for user: {}", request.getUsername(), e);
+            throw new RuntimeException("Signup failed: " + e.getMessage());
+        }
     }
 
     public TokenRefreshResponse refreshToken(RefreshTokenRequest request) {
+        logger.info("Token refresh attempt");
+
         String requestRefreshToken = request.getRefreshToken();
 
         RefreshToken refreshToken = refreshTokenRepository.findByToken(requestRefreshToken)
-                .orElseThrow(() -> new UnauthorizedException("Invalid refresh token"));
+                .orElseThrow(() -> {
+                    logger.warn("Invalid refresh token provided");
+                    return new UnauthorizedException("Invalid refresh token");
+                });
 
         if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
             refreshTokenRepository.delete(refreshToken);
+            logger.warn("Refresh token expired");
             throw new UnauthorizedException("Refresh token expired");
         }
 
@@ -104,6 +142,8 @@ public class AuthService {
         refreshTokenRepository.delete(refreshToken);
         saveRefreshToken(user, newRefreshToken);
 
+        logger.info("Token refresh successful for user: {}", user.getUsername());
+
         return TokenRefreshResponse.builder()
                 .token(newToken)
                 .refreshToken(newRefreshToken)
@@ -111,8 +151,12 @@ public class AuthService {
     }
 
     public void logout(String refreshToken) {
+        logger.info("Logout attempt");
         refreshTokenRepository.findByToken(refreshToken)
-                .ifPresent(refreshTokenRepository::delete);
+                .ifPresent(token -> {
+                    refreshTokenRepository.delete(token);
+                    logger.info("Logout successful for user: {}", token.getUser().getUsername());
+                });
     }
 
     public boolean verifyToken(String token) {
@@ -120,8 +164,11 @@ public class AuthService {
             String username = jwtService.extractUsername(token);
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new UnauthorizedException("Invalid token"));
-            return jwtService.isTokenValid(token, user);
+            boolean isValid = jwtService.isTokenValid(token, user);
+            logger.info("Token verification for user {}: {}", username, isValid);
+            return isValid;
         } catch (Exception e) {
+            logger.warn("Token verification failed: {}", e.getMessage());
             return false;
         }
     }
@@ -136,6 +183,7 @@ public class AuthService {
                 .build();
 
         refreshTokenRepository.save(token);
+        logger.debug("Refresh token saved for user: {}", user.getUsername());
     }
 
     private UserResponse mapToUserResponse(User user) {

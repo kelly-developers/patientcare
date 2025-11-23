@@ -1,7 +1,13 @@
 package com.example.patientcare.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
@@ -10,54 +16,82 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
-import java.util.List;
+import java.util.Collections;
 import java.util.UUID;
 
-@Entity
-@Table(name = "users")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Entity
+@Table(name = "users", uniqueConstraints = {
+        @UniqueConstraint(columnNames = "username"),
+        @UniqueConstraint(columnNames = "email")
+})
 public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(unique = true, nullable = false, length = 50)
+    @NotBlank
+    @Size(min = 3, max = 50)
+    @Column(unique = true)
     private String username;
 
-    @Column(unique = true, nullable = false)
+    @NotBlank
+    @Size(max = 255)
+    @Email
+    @Column(unique = true)
     private String email;
 
-    @Column(nullable = false)
-    private String password;
+    @NotBlank
+    @Size(min = 8)
+    @Column(name = "password_hash")
+    private String passwordHash;
 
-    @Column(name = "first_name", nullable = false, length = 100)
+    @NotBlank
+    @Size(max = 100)
+    @Column(name = "first_name")
     private String firstName;
 
-    @Column(name = "last_name", nullable = false, length = 100)
+    @NotBlank
+    @Size(max = 100)
+    @Column(name = "last_name")
     private String lastName;
 
-    @Column(length = 20)
+    @Size(max = 20)
     private String phone;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private UserRole role;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    public enum UserRole {
+        ADMIN, DOCTOR, NURSE, PATIENT
+    }
+
+    // UserDetails interface methods
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
+
+    @Override
+    public String getPassword() {
+        return passwordHash;
+    }
+
+    @Override
+    public String getUsername() {
+        return username;
     }
 
     @Override
@@ -78,9 +112,5 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
-    }
-
-    public enum UserRole {
-        ADMIN, DOCTOR, NURSE, PATIENT
     }
 }
