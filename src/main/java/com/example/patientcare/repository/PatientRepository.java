@@ -12,15 +12,20 @@ import java.util.UUID;
 
 @Repository
 public interface PatientRepository extends JpaRepository<Patient, UUID> {
+
     Optional<Patient> findByPatientId(String patientId);
-    Boolean existsByPatientId(String patientId);
+
+    List<Patient> findByResearchConsentTrue();
 
     @Query("SELECT p FROM Patient p WHERE " +
             "LOWER(p.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(p.lastName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(p.patientId) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(p.email) LIKE LOWER(CONCAT('%', :query, '%'))")
+            "LOWER(p.email) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(p.phone) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<Patient> searchPatients(@Param("query") String query);
 
-    List<Patient> findByResearchConsentTrue();
+    boolean existsByPatientId(String patientId);
+
+    boolean existsByEmail(String email);
 }

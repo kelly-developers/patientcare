@@ -3,8 +3,6 @@ package com.example.patientcare.service;
 import com.example.patientcare.dto.request.PatientRequest;
 import com.example.patientcare.dto.response.PatientResponse;
 import com.example.patientcare.entity.Patient;
-import com.example.patientcare.exception.DuplicateResourceException;
-import com.example.patientcare.exception.ResourceNotFoundException;
 import com.example.patientcare.repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,33 +20,83 @@ public class PatientService {
 
     public List<PatientResponse> getAllPatients() {
         return patientRepository.findAll().stream()
-                .map(this::mapToPatientResponse)
+                .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     public PatientResponse getPatientById(String id) {
         Patient patient = patientRepository.findById(UUID.fromString(id))
-                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + id));
-        return mapToPatientResponse(patient);
+                .orElseThrow(() -> new RuntimeException("Patient not found with id: " + id));
+        return mapToResponse(patient);
     }
 
     public PatientResponse getPatientByPatientId(String patientId) {
         Patient patient = patientRepository.findByPatientId(patientId)
-                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with patient ID: " + patientId));
-        return mapToPatientResponse(patient);
+                .orElseThrow(() -> new RuntimeException("Patient not found with patient ID: " + patientId));
+        return mapToResponse(patient);
     }
 
     public PatientResponse createPatient(PatientRequest request) {
-        if (patientRepository.existsByPatientId(request.getPatientId())) {
-            throw new DuplicateResourceException("Patient ID already exists: " + request.getPatientId());
+        Patient patient = mapToEntity(request);
+        patient.generatePatientId();
+
+        // Set consent timestamp if research consent is given
+        if (Boolean.TRUE.equals(request.getResearchConsent()) && request.getResearchConsentDate() == null) {
+            patient.setResearchConsentDate(LocalDateTime.now());
         }
 
-        Patient patient = Patient.builder()
-                .patientId(request.getPatientId())
+        Patient savedPatient = patientRepository.save(patient);
+        return mapToResponse(savedPatient);
+    }
+
+    public PatientResponse updatePatient(String id, PatientRequest request) {
+        Patient existingPatient = patientRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new RuntimeException("Patient not found with id: " + id));
+
+        updateEntityFromRequest(existingPatient, request);
+        Patient updatedPatient = patientRepository.save(existingPatient);
+        return mapToResponse(updatedPatient);
+    }
+
+    public void deletePatient(String id) {
+        Patient patient = patientRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new RuntimeException("Patient not found with id: " + id));
+        patientRepository.delete(patient);
+    }
+
+    public List<PatientResponse> searchPatients(String query) {
+        return patientRepository.searchPatients(query).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    public PatientResponse updateResearchConsent(String id, Boolean consent) {
+        Patient patient = patientRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new RuntimeException("Patient not found with id: " + id));
+
+        patient.setResearchConsent(consent);
+        if (Boolean.TRUE.equals(consent)) {
+            patient.setResearchConsentDate(LocalDateTime.now());
+        } else {
+            patient.setResearchConsentDate(null);
+        }
+
+        Patient updatedPatient = patientRepository.save(patient);
+        return mapToResponse(updatedPatient);
+    }
+
+    public List<PatientResponse> getPatientsWithResearchConsent() {
+        return patientRepository.findByResearchConsentTrue().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    private Patient mapToEntity(PatientRequest request) {
+        return Patient.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .dateOfBirth(request.getDateOfBirth())
-                .gender(request.getGender() != null ? Patient.Gender.valueOf(request.getGender().toUpperCase()) : null)
+                .gender(request.getGender())
                 .phone(request.getPhone())
                 .email(request.getEmail())
                 .address(request.getAddress())
@@ -58,28 +106,23 @@ public class PatientService {
                 .allergies(request.getAllergies())
                 .currentMedications(request.getCurrentMedications())
                 .researchConsent(request.getResearchConsent())
-                .researchConsentDate(request.getResearchConsent() != null && request.getResearchConsent() ? LocalDateTime.now() : null)
+                .researchConsentDate(request.getResearchConsentDate())
+                .futureContactConsent(request.getFutureContactConsent())
+                .anonymizedDataConsent(request.getAnonymizedDataConsent())
+                .sampleStorageConsent(request.getSampleStorageConsent())
+                .sampleTypes(request.getSampleTypes())
+                .storageDuration(request.getStorageDuration())
+                .futureResearchUseConsent(request.getFutureResearchUseConsent())
+                .destructionConsent(request.getDestructionConsent())
+                .consentData(request.getConsentData())
                 .build();
-
-        Patient savedPatient = patientRepository.save(patient);
-        return mapToPatientResponse(savedPatient);
     }
 
-    public PatientResponse updatePatient(String id, PatientRequest request) {
-        Patient patient = patientRepository.findById(UUID.fromString(id))
-                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + id));
-
-        // Check if patient ID is being changed and if it already exists
-        if (!patient.getPatientId().equals(request.getPatientId()) &&
-                patientRepository.existsByPatientId(request.getPatientId())) {
-            throw new DuplicateResourceException("Patient ID already exists: " + request.getPatientId());
-        }
-
-        patient.setPatientId(request.getPatientId());
+    private void updateEntityFromRequest(Patient patient, PatientRequest request) {
         patient.setFirstName(request.getFirstName());
         patient.setLastName(request.getLastName());
         patient.setDateOfBirth(request.getDateOfBirth());
-        patient.setGender(request.getGender() != null ? Patient.Gender.valueOf(request.getGender().toUpperCase()) : null);
+        patient.setGender(request.getGender());
         patient.setPhone(request.getPhone());
         patient.setEmail(request.getEmail());
         patient.setAddress(request.getAddress());
@@ -89,59 +132,57 @@ public class PatientService {
         patient.setAllergies(request.getAllergies());
         patient.setCurrentMedications(request.getCurrentMedications());
 
-        Patient updatedPatient = patientRepository.save(patient);
-        return mapToPatientResponse(updatedPatient);
+        // Update consent fields
+        patient.setResearchConsent(request.getResearchConsent());
+        patient.setFutureContactConsent(request.getFutureContactConsent());
+        patient.setAnonymizedDataConsent(request.getAnonymizedDataConsent());
+        patient.setSampleStorageConsent(request.getSampleStorageConsent());
+        patient.setSampleTypes(request.getSampleTypes());
+        patient.setStorageDuration(request.getStorageDuration());
+        patient.setFutureResearchUseConsent(request.getFutureResearchUseConsent());
+        patient.setDestructionConsent(request.getDestructionConsent());
+        patient.setConsentData(request.getConsentData());
+
+        // Update consent date if consent is given
+        if (Boolean.TRUE.equals(request.getResearchConsent()) && patient.getResearchConsentDate() == null) {
+            patient.setResearchConsentDate(LocalDateTime.now());
+        } else if (Boolean.FALSE.equals(request.getResearchConsent())) {
+            patient.setResearchConsentDate(null);
+        }
     }
 
-    public void deletePatient(String id) {
-        Patient patient = patientRepository.findById(UUID.fromString(id))
-                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + id));
-        patientRepository.delete(patient);
-    }
+    private PatientResponse mapToResponse(Patient patient) {
+        PatientResponse response = new PatientResponse();
+        response.setId(patient.getId());
+        response.setPatientId(patient.getPatientId());
+        response.setFirstName(patient.getFirstName());
+        response.setLastName(patient.getLastName());
+        response.setDateOfBirth(patient.getDateOfBirth());
+        response.setGender(patient.getGender());
+        response.setPhone(patient.getPhone());
+        response.setEmail(patient.getEmail());
+        response.setAddress(patient.getAddress());
+        response.setEmergencyContactName(patient.getEmergencyContactName());
+        response.setEmergencyContactPhone(patient.getEmergencyContactPhone());
+        response.setMedicalHistory(patient.getMedicalHistory());
+        response.setAllergies(patient.getAllergies());
+        response.setCurrentMedications(patient.getCurrentMedications());
 
-    public List<PatientResponse> searchPatients(String query) {
-        return patientRepository.searchPatients(query).stream()
-                .map(this::mapToPatientResponse)
-                .collect(Collectors.toList());
-    }
+        // Consent fields
+        response.setResearchConsent(patient.getResearchConsent());
+        response.setResearchConsentDate(patient.getResearchConsentDate());
+        response.setFutureContactConsent(patient.getFutureContactConsent());
+        response.setAnonymizedDataConsent(patient.getAnonymizedDataConsent());
+        response.setSampleStorageConsent(patient.getSampleStorageConsent());
+        response.setSampleTypes(patient.getSampleTypes());
+        response.setStorageDuration(patient.getStorageDuration());
+        response.setFutureResearchUseConsent(patient.getFutureResearchUseConsent());
+        response.setDestructionConsent(patient.getDestructionConsent());
+        response.setConsentData(patient.getConsentData());
 
-    public PatientResponse updateResearchConsent(String id, Boolean researchConsent) {
-        Patient patient = patientRepository.findById(UUID.fromString(id))
-                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + id));
+        response.setCreatedAt(patient.getCreatedAt());
+        response.setUpdatedAt(patient.getUpdatedAt());
 
-        patient.setResearchConsent(researchConsent);
-        patient.setResearchConsentDate(researchConsent ? LocalDateTime.now() : null);
-
-        Patient updatedPatient = patientRepository.save(patient);
-        return mapToPatientResponse(updatedPatient);
-    }
-
-    public List<PatientResponse> getPatientsWithResearchConsent() {
-        return patientRepository.findByResearchConsentTrue().stream()
-                .map(this::mapToPatientResponse)
-                .collect(Collectors.toList());
-    }
-
-    private PatientResponse mapToPatientResponse(Patient patient) {
-        return PatientResponse.builder()
-                .id(patient.getId().toString())
-                .patientId(patient.getPatientId())
-                .firstName(patient.getFirstName())
-                .lastName(patient.getLastName())
-                .dateOfBirth(patient.getDateOfBirth().toString())
-                .gender(patient.getGender() != null ? patient.getGender().name() : null)
-                .phone(patient.getPhone())
-                .email(patient.getEmail())
-                .address(patient.getAddress())
-                .emergencyContactName(patient.getEmergencyContactName())
-                .emergencyContactPhone(patient.getEmergencyContactPhone())
-                .medicalHistory(patient.getMedicalHistory())
-                .allergies(patient.getAllergies())
-                .currentMedications(patient.getCurrentMedications())
-                .researchConsent(patient.getResearchConsent())
-                .researchConsentDate(patient.getResearchConsentDate())
-                .createdAt(patient.getCreatedAt())
-                .updatedAt(patient.getUpdatedAt())
-                .build();
+        return response;
     }
 }

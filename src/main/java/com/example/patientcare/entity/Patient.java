@@ -4,9 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -60,11 +63,39 @@ public class Patient {
     @Column(name = "current_medications", columnDefinition = "TEXT")
     private String currentMedications;
 
+    // Research consent fields
     @Column(name = "research_consent")
     private Boolean researchConsent = false;
 
     @Column(name = "research_consent_date")
     private LocalDateTime researchConsentDate;
+
+    @Column(name = "future_contact_consent")
+    private Boolean futureContactConsent = false;
+
+    @Column(name = "anonymized_data_consent")
+    private Boolean anonymizedDataConsent = false;
+
+    // Sample storage consent fields
+    @Column(name = "sample_storage_consent")
+    private Boolean sampleStorageConsent = false;
+
+    @Column(name = "sample_types")
+    private String sampleTypes; // Store as JSON string or comma-separated
+
+    @Column(name = "storage_duration")
+    private String storageDuration;
+
+    @Column(name = "future_research_use_consent")
+    private Boolean futureResearchUseConsent = false;
+
+    @Column(name = "destruction_consent")
+    private Boolean destructionConsent = false;
+
+    // Store additional consent data as JSON
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, Object> consentData;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -76,5 +107,14 @@ public class Patient {
 
     public enum Gender {
         MALE, FEMALE, OTHER
+    }
+
+    // Helper method to generate patient ID
+    public void generatePatientId() {
+        if (this.patientId == null) {
+            String timestamp = String.valueOf(System.currentTimeMillis());
+            String initials = (firstName.substring(0, 1) + lastName.substring(0, 1)).toUpperCase();
+            this.patientId = initials + timestamp.substring(timestamp.length() - 6);
+        }
     }
 }
