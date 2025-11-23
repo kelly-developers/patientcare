@@ -1,43 +1,32 @@
 package com.example.patientcare.controller;
 
-import com.example.patientcare.dto.request.ConsentUpdateRequest;
 import com.example.patientcare.dto.request.ExportRequest;
 import com.example.patientcare.dto.request.PatientRequest;
 import com.example.patientcare.dto.response.ApiResponse;
 import com.example.patientcare.dto.response.PatientResponse;
-import com.example.patientcare.entity.Patient;
-import com.example.patientcare.service.ExportService;
 import com.example.patientcare.service.PatientService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/patients")
+@CrossOrigin(origins = "*", maxAge = 3600)
 public class PatientController {
 
     @Autowired
     private PatientService patientService;
 
-    @Autowired
-    private ExportService exportService;
-
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
     public ResponseEntity<?> getAllPatients(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -53,35 +42,40 @@ public class PatientController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST')")
-    public ResponseEntity<?> getPatientById(@PathVariable Long id) {
+    public ResponseEntity<?> getPatientById(@PathVariable String id) {
         PatientResponse patient = patientService.getPatientById(id);
         return ResponseEntity.ok(new ApiResponse(true, "Patient retrieved successfully", patient));
     }
 
+    @GetMapping("/patient-id/{patientId}")
+    public ResponseEntity<?> getPatientByPatientId(@PathVariable String patientId) {
+        PatientResponse patient = patientService.getPatientByPatientId(patientId);
+        return ResponseEntity.ok(new ApiResponse(true, "Patient retrieved successfully", patient));
+    }
+
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
     public ResponseEntity<?> createPatient(@Valid @RequestBody PatientRequest patientRequest) {
         PatientResponse patient = patientService.createPatient(patientRequest);
-        return ResponseEntity.ok(new ApiResponse(true, "Patient created successfully", patient));
+        return ResponseEntity.status(201).body(new ApiResponse(true, "Patient created successfully", patient));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST')")
-    public ResponseEntity<?> updatePatient(@PathVariable Long id, @Valid @RequestBody PatientRequest patientRequest) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
+    public ResponseEntity<?> updatePatient(@PathVariable String id, @Valid @RequestBody PatientRequest patientRequest) {
         PatientResponse patient = patientService.updatePatient(id, patientRequest);
         return ResponseEntity.ok(new ApiResponse(true, "Patient updated successfully", patient));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deletePatient(@PathVariable Long id) {
+    public ResponseEntity<?> deletePatient(@PathVariable String id) {
         patientService.deletePatient(id);
-        return ResponseEntity.ok(new ApiResponse(true, "Patient deleted successfully"));
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
     public ResponseEntity<?> searchPatients(@RequestParam String q) {
         List<PatientResponse> patients = patientService.searchPatients(q);
         return ResponseEntity.ok(new ApiResponse(true, "Patients search completed", patients));
@@ -89,40 +83,38 @@ public class PatientController {
 
     @PatchMapping("/{id}/consent")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
-    public ResponseEntity<?> updateConsent(@PathVariable Long id, @Valid @RequestBody ConsentUpdateRequest consentRequest) {
-        PatientResponse patient = patientService.updateConsent(id, consentRequest);
-        return ResponseEntity.ok(new ApiResponse(true, "Consent updated successfully", patient));
+    public ResponseEntity<?> updateResearchConsent(@PathVariable String id, @RequestBody Boolean researchConsent) {
+        PatientResponse patient = patientService.updateResearchConsent(id, researchConsent);
+        return ResponseEntity.ok(new ApiResponse(true, "Research consent updated successfully", patient));
     }
 
     @PostMapping("/export/excel")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
-    public ResponseEntity<Resource> exportPatientsToExcel(@RequestBody(required = false) ExportRequest exportRequest) throws IOException {
-        List<Long> patientIds = exportRequest != null ? exportRequest.getPatientIds() : null;
-        List<Patient> patients = patientService.getPatientsWithConsent(patientIds);
-
-        if (patients.isEmpty()) {
-            throw new RuntimeException("No consented patients found for export");
+    public ResponseEntity<?> exportPatientsToExcel(@RequestBody ExportRequest exportRequest) {
+        // This would be implemented with Excel export logic
+        // For now, return the patients data
+        List<PatientResponse> patients;
+        if (exportRequest.getPatientIds() != null && !exportRequest.getPatientIds().isEmpty()) {
+            patients = patientService.getPatientsByIds(exportRequest.getPatientIds());
+        } else {
+            patients = patientService.getPatientsWithConsent();
         }
 
-        byte[] excelData = exportService.exportPatientsToExcel(patients);
-
-        ByteArrayResource resource = new ByteArrayResource(excelData);
-
-        String timestamp = LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String filename = "patients_export_" + timestamp + ".xlsx";
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                .contentLength(excelData.length)
-                .body(resource);
+        return ResponseEntity.ok(new ApiResponse(true, "Export data prepared", patients));
     }
 
     @PostMapping("/export/pdf")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'NURSE')")
-    public ResponseEntity<?> exportPatientsToPdf(@RequestBody(required = false) ExportRequest exportRequest) {
-        // PDF export implementation would go here
-        // For now, return a message indicating it's not implemented
-        return ResponseEntity.ok(new ApiResponse(true, "PDF export feature coming soon"));
+    public ResponseEntity<?> exportPatientsToPdf(@RequestBody ExportRequest exportRequest) {
+        // This would be implemented with PDF export logic
+        // For now, return the patients data
+        List<PatientResponse> patients;
+        if (exportRequest.getPatientIds() != null && !exportRequest.getPatientIds().isEmpty()) {
+            patients = patientService.getPatientsByIds(exportRequest.getPatientIds());
+        } else {
+            patients = patientService.getPatientsWithConsent();
+        }
+
+        return ResponseEntity.ok(new ApiResponse(true, "Export data prepared", patients));
     }
 }

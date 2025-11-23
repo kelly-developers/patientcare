@@ -3,7 +3,7 @@ package com.example.patientcare.dto.request;
 import jakarta.validation.constraints.NotBlank;
 
 public class RefreshTokenRequest {
-    @NotBlank(message = "Refresh token is required")
+    @NotBlank
     private String refreshToken;
 
     // Constructors

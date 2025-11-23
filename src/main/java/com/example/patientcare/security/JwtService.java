@@ -2,7 +2,6 @@ package com.example.patientcare.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.io.Encoders;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtService {
@@ -20,10 +20,10 @@ public class JwtService {
     @Value("${app.jwt.secret}")
     private String jwtSecret;
 
-    @Value("${app.jwt.expiration-ms}")
+    @Value("${app.jwt.expiration-ms:900000}")
     private int jwtExpirationMs;
 
-    @Value("${app.jwt.refresh-expiration-ms}")
+    @Value("${app.jwt.refresh-expiration-ms:604800000}")
     private int refreshTokenExpirationMs;
 
     // Method for Authentication object
@@ -45,14 +45,15 @@ public class JwtService {
                     .compact();
 
             logger.debug("Generated JWT token for user: {}", username);
-            logger.debug("Token length: {}", token.length());
-            logger.debug("Token periods: {}", countPeriods(token));
-
             return token;
         } catch (Exception e) {
             logger.error("Error generating JWT token: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to generate JWT token", e);
         }
+    }
+
+    public String generateRefreshToken() {
+        return UUID.randomUUID().toString() + "-" + System.currentTimeMillis();
     }
 
     public String getUsernameFromJwtToken(String token) {
@@ -112,9 +113,8 @@ public class JwtService {
         }
     }
 
-    // Helper method to debug token structure
-    private long countPeriods(String token) {
-        return token.chars().filter(ch -> ch == '.').count();
+    public int getRefreshTokenExpirationMs() {
+        return refreshTokenExpirationMs;
     }
 
     // Method to validate your JWT secret (call this during startup)
@@ -125,9 +125,6 @@ public class JwtService {
 
             // Test token generation
             String testToken = generateJwtToken("test");
-            if (countPeriods(testToken) != 2) {
-                throw new IllegalStateException("Generated test token has invalid structure");
-            }
             logger.info("JWT token generation test successful");
         } catch (Exception e) {
             logger.error("JWT secret validation failed: {}", e.getMessage());
@@ -135,5 +132,3 @@ public class JwtService {
         }
     }
 }
-
-//

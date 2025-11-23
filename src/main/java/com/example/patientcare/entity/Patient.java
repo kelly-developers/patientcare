@@ -2,61 +2,69 @@ package com.example.patientcare.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "patients")
+@Table(name = "patients", uniqueConstraints = {
+        @UniqueConstraint(columnNames = "patient_id")
+})
 public class Patient {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
-    @Column(name = "patient_id", unique = true, nullable = false)
-    @Size(max = 50)
+    @NotBlank
+    @Column(name = "patient_id", unique = true)
     private String patientId;
 
-    @Column(name = "first_name", nullable = false)
+    @NotBlank
     @Size(max = 100)
+    @Column(name = "first_name")
     private String firstName;
 
-    @Column(name = "last_name", nullable = false)
+    @NotBlank
     @Size(max = 100)
+    @Column(name = "last_name")
     private String lastName;
 
-    @Column(name = "date_of_birth", nullable = false)
+    @NotNull
+    @Past
+    @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "gender")
     private Gender gender;
 
-    @Column(name = "phone")
     @Size(max = 20)
     private String phone;
 
     @Email
-    @Column(name = "email")
     @Size(max = 255)
     private String email;
 
-    @Column(name = "address")
+    @Column(columnDefinition = "TEXT")
     private String address;
 
-    @Column(name = "emergency_contact_name")
     @Size(max = 200)
+    @Column(name = "emergency_contact_name")
     private String emergencyContactName;
 
-    @Column(name = "emergency_contact_phone")
     @Size(max = 20)
+    @Column(name = "emergency_contact_phone")
     private String emergencyContactPhone;
 
     @Column(name = "medical_history", columnDefinition = "TEXT")
     private String medicalHistory;
 
-    @Column(name = "allergies", columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String allergies;
 
     @Column(name = "current_medications", columnDefinition = "TEXT")
@@ -68,35 +76,16 @@ public class Patient {
     @Column(name = "research_consent_date")
     private LocalDateTime researchConsentDate;
 
-    @Column(name = "created_at")
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     public enum Gender {
         MALE, FEMALE, OTHER
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-
-        // Auto-generate research consent date if consent is given
-        if (researchConsent != null && researchConsent && researchConsentDate == null) {
-            researchConsentDate = LocalDateTime.now();
-        }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-
-        // Auto-generate research consent date if consent is given and date is null
-        if (researchConsent != null && researchConsent && researchConsentDate == null) {
-            researchConsentDate = LocalDateTime.now();
-        }
     }
 
     // Constructors
@@ -110,8 +99,8 @@ public class Patient {
     }
 
     // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
     public String getPatientId() { return patientId; }
     public void setPatientId(String patientId) { this.patientId = patientId; }
@@ -153,7 +142,12 @@ public class Patient {
     public void setCurrentMedications(String currentMedications) { this.currentMedications = currentMedications; }
 
     public Boolean getResearchConsent() { return researchConsent; }
-    public void setResearchConsent(Boolean researchConsent) { this.researchConsent = researchConsent; }
+    public void setResearchConsent(Boolean researchConsent) {
+        this.researchConsent = researchConsent;
+        if (researchConsent && this.researchConsentDate == null) {
+            this.researchConsentDate = LocalDateTime.now();
+        }
+    }
 
     public LocalDateTime getResearchConsentDate() { return researchConsentDate; }
     public void setResearchConsentDate(LocalDateTime researchConsentDate) { this.researchConsentDate = researchConsentDate; }

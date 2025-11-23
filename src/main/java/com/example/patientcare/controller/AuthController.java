@@ -14,38 +14,50 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-// REMOVE THIS: @CrossOrigin(origins = {"https://patientcares.netlify.app", "http://localhost:3000"})
+@CrossOrigin(origins = "*", maxAge = 3600)
 public class AuthController {
 
     @Autowired
     private AuthService authService;
 
-    @PostMapping("/signin")
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        AuthResponse authResponse = authService.authenticateUser(loginRequest);
-        return ResponseEntity.ok(new ApiResponse(true, "User authenticated successfully", authResponse));
-    }
-
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        AuthResponse authResponse = authService.registerUser(signUpRequest);
-        return ResponseEntity.ok(new ApiResponse(true, "User registered successfully", authResponse));
+        try {
+            AuthResponse response = authService.register(signUpRequest);
+            return ResponseEntity.ok(new ApiResponse(true, "User registered successfully", response));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, e.getMessage()));
+        }
     }
 
-    @PostMapping("/refreshtoken")
+    @PostMapping("/login")
+    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+        try {
+            AuthResponse response = authService.login(loginRequest);
+            return ResponseEntity.ok(new ApiResponse(true, "Login successful", response));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, e.getMessage()));
+        }
+    }
+
+    @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-        TokenRefreshResponse tokenRefreshResponse = authService.refreshToken(request);
-        return ResponseEntity.ok(new ApiResponse(true, "Token refreshed successfully", tokenRefreshResponse));
+        try {
+            TokenRefreshResponse response = authService.refreshToken(request);
+            return ResponseEntity.ok(new ApiResponse(true, "Token refreshed successfully", response));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, e.getMessage()));
+        }
     }
 
-    @PostMapping("/signout")
+    @PostMapping("/logout")
     public ResponseEntity<?> logoutUser() {
-        authService.logoutUser();
-        return ResponseEntity.ok(new ApiResponse(true, "User logged out successfully"));
+        authService.logout();
+        return ResponseEntity.ok(new ApiResponse(true, "Logout successful"));
     }
 
     @GetMapping("/verify")
     public ResponseEntity<?> verifyToken() {
-        return ResponseEntity.ok(new ApiResponse(true, "Token is valid", null));
+        return ResponseEntity.ok(new ApiResponse(true, "Token is valid"));
     }
 }

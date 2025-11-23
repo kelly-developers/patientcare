@@ -1,11 +1,12 @@
 package com.example.patientcare.dto.response;
 
 import com.example.patientcare.entity.Patient;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class PatientResponse {
-    private Long id;
+    private String id;
     private String patientId;
     private String firstName;
     private String lastName;
@@ -49,8 +50,8 @@ public class PatientResponse {
     }
 
     // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
     public String getPatientId() { return patientId; }
     public void setPatientId(String patientId) { this.patientId = patientId; }

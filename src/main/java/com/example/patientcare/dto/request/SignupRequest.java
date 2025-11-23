@@ -1,5 +1,6 @@
 package com.example.patientcare.dto.request;
 
+import com.example.patientcare.entity.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -10,29 +11,29 @@ public class SignupRequest {
     private String username;
 
     @NotBlank
-    @Size(max = 100)
+    @Size(max = 255)
     @Email
     private String email;
 
     @NotBlank
-    @Size(min = 6, max = 120)
+    @Size(min = 8, max = 255)
     private String password;
 
     @NotBlank
-    @Size(max = 50)
+    @Size(max = 100)
     private String firstName;
 
     @NotBlank
-    @Size(max = 50)
+    @Size(max = 100)
     private String lastName;
 
     @Size(max = 20)
     private String phone;
 
-    private String role; // Keep as String for JSON deserialization
+    private User.Role role;
 
-    @Size(max = 100)
-    private String specialization;
+    // Constructors
+    public SignupRequest() {}
 
     // Getters and Setters
     public String getUsername() { return username; }
@@ -53,9 +54,6 @@ public class SignupRequest {
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
 
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
-
-    public String getSpecialization() { return specialization; }
-    public void setSpecialization(String specialization) { this.specialization = specialization; }
+    public User.Role getRole() { return role; }
+    public void setRole(User.Role role) { this.role = role; }
 }

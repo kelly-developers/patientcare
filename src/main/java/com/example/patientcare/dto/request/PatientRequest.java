@@ -2,64 +2,42 @@ package com.example.patientcare.dto.request;
 
 import com.example.patientcare.entity.Patient;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Past;
+
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 public class PatientRequest {
-
-    @NotNull(message = "Patient ID is required")
-    @Size(min = 1, max = 50, message = "Patient ID must be between 1 and 50 characters")
+    @NotBlank
     private String patientId;
 
-    @NotNull(message = "First name is required")
-    @Size(min = 1, max = 100, message = "First name must be between 1 and 100 characters")
+    @NotBlank
     private String firstName;
 
-    @NotNull(message = "Last name is required")
-    @Size(min = 1, max = 100, message = "Last name must be between 1 and 100 characters")
+    @NotBlank
     private String lastName;
 
-    @NotNull(message = "Date of birth is required")
+    @NotNull
+    @Past
     private LocalDate dateOfBirth;
 
     private Patient.Gender gender;
-
-    @Size(max = 20, message = "Phone number must not exceed 20 characters")
     private String phone;
 
-    @Email(message = "Email should be valid")
-    @Size(max = 255, message = "Email must not exceed 255 characters")
+    @Email
     private String email;
 
     private String address;
-
-    @Size(max = 200, message = "Emergency contact name must not exceed 200 characters")
     private String emergencyContactName;
-
-    @Size(max = 20, message = "Emergency contact phone must not exceed 20 characters")
     private String emergencyContactPhone;
-
     private String medicalHistory;
-
     private String allergies;
-
     private String currentMedications;
-
-    private Boolean researchConsent = false;
-
-    private LocalDateTime researchConsentDate;
+    private Boolean researchConsent;
 
     // Constructors
     public PatientRequest() {}
-
-    public PatientRequest(String patientId, String firstName, String lastName, LocalDate dateOfBirth) {
-        this.patientId = patientId;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.dateOfBirth = dateOfBirth;
-    }
 
     // Getters and Setters
     public String getPatientId() { return patientId; }
@@ -103,7 +81,4 @@ public class PatientRequest {
 
     public Boolean getResearchConsent() { return researchConsent; }
     public void setResearchConsent(Boolean researchConsent) { this.researchConsent = researchConsent; }
-
-    public LocalDateTime getResearchConsentDate() { return researchConsentDate; }
-    public void setResearchConsentDate(LocalDateTime researchConsentDate) { this.researchConsentDate = researchConsentDate; }
 }
