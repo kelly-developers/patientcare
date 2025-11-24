@@ -114,7 +114,16 @@ public class Patient {
         if (this.patientId == null) {
             String timestamp = String.valueOf(System.currentTimeMillis());
             String initials = (firstName.substring(0, 1) + lastName.substring(0, 1)).toUpperCase();
-            this.patientId = initials + timestamp.substring(timestamp.length() - 6);
+            this.patientId = "P" + timestamp.substring(timestamp.length() - 6);
         }
+    }
+
+    // Validation method for date of birth
+    public boolean isValidDateOfBirth() {
+        if (dateOfBirth == null) {
+            return false;
+        }
+        LocalDate today = LocalDate.now();
+        return !dateOfBirth.isAfter(today) && dateOfBirth.isBefore(today.minusYears(120));
     }
 }
