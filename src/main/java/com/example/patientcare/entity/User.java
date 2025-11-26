@@ -75,10 +75,7 @@ public class User implements UserDetails {
     private LocalDateTime updatedAt;
 
     public enum UserRole {
-        ADMIN,
-        DOCTOR,
-        NURSE,
-        PATIENT
+        ADMIN, DOCTOR, NURSE, PATIENT
     }
 
     // UserDetails interface methods
