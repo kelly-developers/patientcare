@@ -15,17 +15,14 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
 
     Optional<Patient> findByPatientId(String patientId);
 
+    @Query("SELECT p FROM Patient p WHERE p.researchConsent = true")
     List<Patient> findByResearchConsentTrue();
 
-    @Query("SELECT p FROM Patient p WHERE " +
-            "LOWER(p.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+    @Query("SELECT p FROM Patient p WHERE LOWER(p.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(p.lastName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(p.patientId) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(p.email) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(p.phone) LIKE LOWER(CONCAT('%', :query, '%'))")
+            "p.patientId LIKE CONCAT('%', :query, '%')")
     List<Patient> searchPatients(@Param("query") String query);
 
-    boolean existsByPatientId(String patientId);
-
-    boolean existsByEmail(String email);
+    Boolean existsByPatientId(String patientId);
+    Boolean existsByEmail(String email);
 }

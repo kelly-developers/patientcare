@@ -39,7 +39,7 @@ public interface VitalDataRepository extends JpaRepository<VitalData, UUID> {
     List<VitalData> findByPatientPatientIdOrderByRecordedAtDesc(@Param("patientId") String patientId);
 
     // Find latest vital data for a patient
-    @Query(value = "SELECT v FROM VitalData v WHERE v.patient.id = :patientId ORDER BY v.recordedAt DESC LIMIT 1")
+    @Query("SELECT v FROM VitalData v WHERE v.patient.id = :patientId ORDER BY v.recordedAt DESC LIMIT 1")
     VitalData findLatestByPatientId(@Param("patientId") UUID patientId);
 
     // Find vital data with critical values (for alerting)

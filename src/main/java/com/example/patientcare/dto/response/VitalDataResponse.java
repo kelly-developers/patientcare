@@ -6,17 +6,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class VitalDataResponse {
-
-    private UUID id;
+    private String id;
     private String patientId;
     private String patientName;
+    private String recordedBy;
     private String recordedByName;
     private Integer systolicBP;
     private Integer diastolicBP;

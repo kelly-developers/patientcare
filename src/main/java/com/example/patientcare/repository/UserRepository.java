@@ -14,11 +14,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByUsername(String username);
     Optional<User> findByEmail(String email);
 
-    // Fix: Method that takes two parameters for username OR email search
     @Query("SELECT u FROM User u WHERE u.username = :username OR u.email = :email")
     Optional<User> findByUsernameOrEmail(@Param("username") String username, @Param("email") String email);
 
-    // Alternative method that takes a single parameter for both username and email
     @Query("SELECT u FROM User u WHERE u.username = :identifier OR u.email = :identifier")
     Optional<User> findByIdentifier(@Param("identifier") String identifier);
 
