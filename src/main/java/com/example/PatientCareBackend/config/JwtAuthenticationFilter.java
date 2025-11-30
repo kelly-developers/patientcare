@@ -30,6 +30,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
+
+        // Handle preflight requests
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            response.setStatus(HttpServletResponse.SC_OK);
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String userEmail;
@@ -38,7 +46,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String requestPath = request.getServletPath();
         if (requestPath.startsWith("/api/auth/") ||
                 requestPath.startsWith("/v3/api-docs") ||
-                requestPath.startsWith("/swagger-ui")) {
+                requestPath.startsWith("/swagger-ui") ||
+                requestPath.startsWith("/health") ||
+                requestPath.startsWith("/actuator/health") ||
+                requestPath.equals("/error")) {
             filterChain.doFilter(request, response);
             return;
         }
