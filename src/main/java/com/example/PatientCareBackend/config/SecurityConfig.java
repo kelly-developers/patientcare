@@ -44,12 +44,22 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/api/export/**").permitAll()
-                        .requestMatchers("/health", "/health/**", "/actuator/health").permitAll()
-                        .requestMatchers("/error").permitAll()
+                        // Public endpoints - health checks and auth
+                        .requestMatchers(
+                                "/",
+                                "/health",
+                                "/health/**",
+                                "/api/health",
+                                "/api/health/**",
+                                "/actuator/health",
+                                "/actuator/health/**",
+                                "/api/auth/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/api/export/**",
+                                "/error"
+                        ).permitAll()
 
                         // All other endpoints require authentication
                         .anyRequest().authenticated()

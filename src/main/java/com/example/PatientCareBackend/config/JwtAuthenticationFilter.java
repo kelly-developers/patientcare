@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -23,6 +24,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+
+    // List of public endpoints that don't require JWT authentication
+    private static final List<String> PUBLIC_ENDPOINTS = List.of(
+            "/api/auth/",
+            "/v3/api-docs",
+            "/swagger-ui",
+            "/health",
+            "/api/health",
+            "/actuator/health",
+            "/api/export/",
+            "/error"
+    );
 
     @Override
     protected void doFilterInternal(
@@ -44,12 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Skip JWT processing for public endpoints
         String requestPath = request.getServletPath();
-        if (requestPath.startsWith("/api/auth/") ||
-                requestPath.startsWith("/v3/api-docs") ||
-                requestPath.startsWith("/swagger-ui") ||
-                requestPath.startsWith("/health") ||
-                requestPath.startsWith("/actuator/health") ||
-                requestPath.equals("/error")) {
+        if (isPublicEndpoint(requestPath)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -76,5 +84,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isPublicEndpoint(String requestPath) {
+        return PUBLIC_ENDPOINTS.stream().anyMatch(requestPath::startsWith);
     }
 }
