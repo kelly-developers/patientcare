@@ -68,6 +68,8 @@ public class AuthService {
             );
         } catch (org.springframework.security.core.AuthenticationException e) {
             throw new AuthenticationException("Invalid credentials");
+        } catch (ResourceNotFoundException e) {
+            throw new AuthenticationException("Invalid credentials");
         }
     }
 
