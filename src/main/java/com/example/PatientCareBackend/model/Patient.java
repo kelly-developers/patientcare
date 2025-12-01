@@ -27,7 +27,7 @@ public class Patient {
     @NotBlank
     @Size(max = 20)
     @Column(name = "patient_id", unique = true)
-    private String patientId;
+    private String patientId; // Will be auto-generated
 
     @NotBlank
     @Size(max = 50)
@@ -76,11 +76,11 @@ public class Patient {
     @Column(name = "current_medications")
     private String currentMedications;
 
-    @Column(name = "research_consent")
-    private Boolean researchConsent = false;
+    @Column(name = "consent_accepted")
+    private Boolean consentAccepted = false;
 
-    @Column(name = "sample_storage_consent")
-    private Boolean sampleStorageConsent = false;
+    @Column(name = "consent_form_path")
+    private String consentFormPath;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

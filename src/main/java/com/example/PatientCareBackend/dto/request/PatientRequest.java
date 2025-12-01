@@ -15,22 +15,18 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PatientRequest {
-    @NotBlank
-    @Size(max = 20)
-    private String patientId;
-
-    @NotBlank
+    @NotBlank(message = "First name is required")
     @Size(max = 50)
     private String firstName;
 
-    @NotBlank
+    @NotBlank(message = "Last name is required")
     @Size(max = 50)
     private String lastName;
 
-    @NotNull
+    @NotNull(message = "Date of birth is required")
     private LocalDate dateOfBirth;
 
-    @NotNull
+    @NotNull(message = "Gender is required")
     private Gender gender;
 
     @Size(max = 20)
@@ -54,7 +50,7 @@ public class PatientRequest {
 
     private String currentMedications;
 
-    private Boolean researchConsent = false;
+    private Boolean consentAccepted = false;
 
-    private Boolean sampleStorageConsent = false;
+    private String consentFormPath; // Path to uploaded consent form
 }

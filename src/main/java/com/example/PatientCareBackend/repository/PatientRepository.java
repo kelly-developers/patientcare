@@ -22,6 +22,6 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
             "LOWER(p.email) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<Patient> searchPatients(@Param("query") String query);
 
-    @Query("SELECT p FROM Patient p WHERE p.researchConsent = true")
-    List<Patient> findPatientsWithResearchConsent();
+    @Query("SELECT p FROM Patient p WHERE p.consentAccepted = true")
+    List<Patient> findPatientsWithConsent();
 }

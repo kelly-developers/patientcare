@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PatientResponse {
     private Long id;
-    private String patientId;
+    private String patientId; // Auto-generated
     private String firstName;
     private String lastName;
     private LocalDate dateOfBirth;
@@ -26,8 +26,8 @@ public class PatientResponse {
     private String medicalHistory;
     private String allergies;
     private String currentMedications;
-    private Boolean researchConsent;
-    private Boolean sampleStorageConsent;
+    private Boolean consentAccepted;
+    private String consentFormPath;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
