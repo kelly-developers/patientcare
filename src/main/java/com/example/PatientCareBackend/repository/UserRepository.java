@@ -17,10 +17,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Boolean existsByUsername(String username);
     Boolean existsByEmail(String email);
 
-    // Original methods for other functionality
+    
     List<User> findByRole(User.Role role);
     List<User> findByAvailableTrue();
-    
+
 
     @Query("SELECT u FROM User u WHERE u.specialty = :specialty AND u.available = true")
     List<User> findAvailableBySpecialty(@Param("specialty") String specialty);
