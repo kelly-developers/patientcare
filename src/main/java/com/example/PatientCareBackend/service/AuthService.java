@@ -13,7 +13,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,27 +25,34 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final CustomUserDetailsService userDetailsService;
 
     @Transactional
     public AuthResponse authenticate(AuthRequest authRequest) {
         try {
+            String usernameOrEmail = authRequest.getUsernameOrEmail();
+            String password = authRequest.getPassword();
+
+            // Determine if input is email or username
+            User user;
+            if (usernameOrEmail.contains("@")) {
+                // Input is email
+                user = userRepository.findByEmail(usernameOrEmail)
+                        .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + usernameOrEmail));
+            } else {
+                // Input is username
+                user = userRepository.findByUsername(usernameOrEmail)
+                        .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + usernameOrEmail));
+            }
+
+            // Authenticate with Spring Security
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            authRequest.getUsername(),
-                            authRequest.getPassword()
+                            user.getUsername(), // Spring Security needs username for authentication
+                            password
                     )
             );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            // Get the UserDetails from the authentication
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-
-            // Load the actual User entity from the database
-            User user = userRepository.findByUsername(userDetails.getUsername())
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userDetails.getUsername()));
-
             String jwt = jwtService.generateToken(user);
 
             return new AuthResponse(
@@ -61,7 +67,7 @@ public class AuthService {
                     user.getSpecialty()
             );
         } catch (org.springframework.security.core.AuthenticationException e) {
-            throw new AuthenticationException("Invalid username or password");
+            throw new AuthenticationException("Invalid credentials");
         }
     }
 
