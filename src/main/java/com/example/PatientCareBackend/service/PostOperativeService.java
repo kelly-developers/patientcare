@@ -154,10 +154,12 @@ public class PostOperativeService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getResearchConsent(),
-                patient.getSampleStorageConsent(),
-                patient.getCreatedAt(),
-                patient.getUpdatedAt()
+                patient.getConsentAccepted(),  // ✅ Position 15
+                patient.getConsentFormPath(),  // ✅ Position 16
+                patient.getResearchConsent(),  // ✅ Position 17
+                patient.getSampleStorageConsent(),  // ✅ Position 18
+                patient.getCreatedAt(),        // ✅ Position 19
+                patient.getUpdatedAt()         // ✅ Position 20
         );
     }
 

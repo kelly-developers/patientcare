@@ -165,8 +165,8 @@ public class ExportService {
             return new String[]{
                     "ID", "Patient ID", "First Name", "Last Name", "Date of Birth", "Gender",
                     "Phone", "Email", "Address", "Emergency Contact", "Emergency Phone",
-                    "Medical History", "Allergies", "Current Medications", "Research Consent",
-                    "Sample Storage Consent", "Created At"
+                    "Medical History", "Allergies", "Current Medications", "Consent Accepted",
+                    "Consent Form Path", "Research Consent", "Sample Storage Consent", "Created At"
             };
         } else if (clazz == SurgeryResponse.class) {
             return new String[]{
@@ -212,6 +212,8 @@ public class ExportService {
                     patient.getMedicalHistory(),
                     patient.getAllergies(),
                     patient.getCurrentMedications(),
+                    patient.getConsentAccepted() != null ? patient.getConsentAccepted().toString() : "",
+                    patient.getConsentFormPath(),
                     patient.getResearchConsent() != null ? patient.getResearchConsent().toString() : "",
                     patient.getSampleStorageConsent() != null ? patient.getSampleStorageConsent().toString() : "",
                     patient.getCreatedAt() != null ? patient.getCreatedAt().toString() : ""
@@ -303,10 +305,12 @@ public class ExportService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getResearchConsent(),
-                patient.getSampleStorageConsent(),
-                patient.getCreatedAt(),
-                patient.getUpdatedAt()
+                patient.getConsentAccepted(),  // Position 15: Boolean
+                patient.getConsentFormPath(),  // Position 16: String
+                patient.getResearchConsent(),  // Position 17: Boolean
+                patient.getSampleStorageConsent(),  // Position 18: Boolean
+                patient.getCreatedAt(),        // Position 19: LocalDateTime
+                patient.getUpdatedAt()         // Position 20: LocalDateTime
         );
     }
 
@@ -340,7 +344,7 @@ public class ExportService {
         response.setStatus(appointment.getStatus());
         response.setReason(appointment.getReason());
         response.setNotes(appointment.getNotes());
-        response.setPriority((com.example.PatientCareBackend.model.Appointment.Priority) appointment.getPriority());
+        response.setPriority(appointment.getPriority());
         response.setArrivalStatus(appointment.getArrivalStatus());
         response.setCreatedAt(appointment.getCreatedAt());
         return response;

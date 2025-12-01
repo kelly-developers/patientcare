@@ -49,7 +49,7 @@ public class PatientService {
         // Generate unique patient ID
         patient.setPatientId(generatePatientId());
 
-        // Map other fields
+        // Map all fields
         patient.setFirstName(patientRequest.getFirstName());
         patient.setLastName(patientRequest.getLastName());
         patient.setDateOfBirth(patientRequest.getDateOfBirth());
@@ -64,6 +64,8 @@ public class PatientService {
         patient.setCurrentMedications(patientRequest.getCurrentMedications());
         patient.setConsentAccepted(patientRequest.getConsentAccepted());
         patient.setConsentFormPath(patientRequest.getConsentFormPath());
+        patient.setResearchConsent(patientRequest.getResearchConsent() != null ? patientRequest.getResearchConsent() : false);
+        patient.setSampleStorageConsent(patientRequest.getSampleStorageConsent() != null ? patientRequest.getSampleStorageConsent() : false);
 
         Patient savedPatient = patientRepository.save(patient);
         return mapToResponse(savedPatient);
@@ -74,7 +76,7 @@ public class PatientService {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + id));
 
-        // Update fields
+        // Update all fields
         patient.setFirstName(patientRequest.getFirstName());
         patient.setLastName(patientRequest.getLastName());
         patient.setDateOfBirth(patientRequest.getDateOfBirth());
@@ -91,6 +93,14 @@ public class PatientService {
 
         if (patientRequest.getConsentFormPath() != null) {
             patient.setConsentFormPath(patientRequest.getConsentFormPath());
+        }
+
+        if (patientRequest.getResearchConsent() != null) {
+            patient.setResearchConsent(patientRequest.getResearchConsent());
+        }
+
+        if (patientRequest.getSampleStorageConsent() != null) {
+            patient.setSampleStorageConsent(patientRequest.getSampleStorageConsent());
         }
 
         Patient updatedPatient = patientRepository.save(patient);
@@ -165,6 +175,8 @@ public class PatientService {
                 patient.getCurrentMedications(),
                 patient.getConsentAccepted(),
                 patient.getConsentFormPath(),
+                patient.getResearchConsent() != null ? patient.getResearchConsent() : false,
+                patient.getSampleStorageConsent() != null ? patient.getSampleStorageConsent() : false,
                 patient.getCreatedAt(),
                 patient.getUpdatedAt()
         );

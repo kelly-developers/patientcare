@@ -82,6 +82,34 @@ public class Patient {
     @Column(name = "consent_form_path")
     private String consentFormPath;
 
+    // Research consent fields
+    @Column(name = "research_consent")
+    private Boolean researchConsent = false;
+
+    @Column(name = "research_consent_date")
+    private LocalDateTime researchConsentDate;
+
+    @Column(name = "future_contact_consent")
+    private Boolean futureContactConsent = false;
+
+    @Column(name = "anonymized_data_consent")
+    private Boolean anonymizedDataConsent = false;
+
+    @Column(name = "sample_storage_consent")
+    private Boolean sampleStorageConsent = false;
+
+    @Column(name = "sample_types")
+    private String sampleTypes;
+
+    @Column(name = "storage_duration")
+    private String storageDuration;
+
+    @Column(name = "future_research_use_consent")
+    private Boolean futureResearchUseConsent = false;
+
+    @Column(name = "destruction_consent")
+    private Boolean destructionConsent = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

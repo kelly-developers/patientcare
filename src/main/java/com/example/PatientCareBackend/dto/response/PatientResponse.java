@@ -28,6 +28,53 @@ public class PatientResponse {
     private String currentMedications;
     private Boolean consentAccepted;
     private String consentFormPath;
+    private Boolean researchConsent;
+    private LocalDateTime researchConsentDate;
+    private Boolean futureContactConsent;
+    private Boolean anonymizedDataConsent;
+    private Boolean sampleStorageConsent;
+    private String sampleTypes;
+    private String storageDuration;
+    private Boolean futureResearchUseConsent;
+    private Boolean destructionConsent;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // Additional constructor for backward compatibility (20 parameters)
+    public PatientResponse(Long id, String patientId, String firstName, String lastName,
+                           LocalDate dateOfBirth, Gender gender, String phone, String email,
+                           String address, String emergencyContactName, String emergencyContactPhone,
+                           String medicalHistory, String allergies, String currentMedications,
+                           Boolean consentAccepted, String consentFormPath,
+                           Boolean researchConsent, Boolean sampleStorageConsent,
+                           LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this.id = id;
+        this.patientId = patientId;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.dateOfBirth = dateOfBirth;
+        this.gender = gender;
+        this.phone = phone;
+        this.email = email;
+        this.address = address;
+        this.emergencyContactName = emergencyContactName;
+        this.emergencyContactPhone = emergencyContactPhone;
+        this.medicalHistory = medicalHistory;
+        this.allergies = allergies;
+        this.currentMedications = currentMedications;
+        this.consentAccepted = consentAccepted;
+        this.consentFormPath = consentFormPath;
+        this.researchConsent = researchConsent;
+        this.sampleStorageConsent = sampleStorageConsent;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        // Set default values for other fields
+        this.researchConsentDate = null;
+        this.futureContactConsent = false;
+        this.anonymizedDataConsent = false;
+        this.sampleTypes = "";
+        this.storageDuration = "";
+        this.futureResearchUseConsent = false;
+        this.destructionConsent = false;
+    }
 }

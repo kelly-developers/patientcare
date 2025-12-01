@@ -3,6 +3,7 @@ package com.example.PatientCareBackend.service;
 import com.example.PatientCareBackend.dto.request.SurgicalDecisionRequest;
 import com.example.PatientCareBackend.dto.response.SurgicalDecisionResponse;
 import com.example.PatientCareBackend.exception.ResourceNotFoundException;
+import com.example.PatientCareBackend.model.Patient;
 import com.example.PatientCareBackend.model.SurgicalDecision;
 import com.example.PatientCareBackend.model.Surgery;
 import com.example.PatientCareBackend.repository.SurgicalDecisionRepository;
@@ -131,7 +132,7 @@ public class SurgicalDecisionService {
         );
     }
 
-    private com.example.PatientCareBackend.dto.response.PatientResponse mapToPatientResponse(com.example.PatientCareBackend.model.Patient patient) {
+    private com.example.PatientCareBackend.dto.response.PatientResponse mapToPatientResponse(Patient patient) {
         return new com.example.PatientCareBackend.dto.response.PatientResponse(
                 patient.getId(),
                 patient.getPatientId(),
@@ -147,10 +148,12 @@ public class SurgicalDecisionService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getResearchConsent(),
-                patient.getSampleStorageConsent(),
-                patient.getCreatedAt(),
-                patient.getUpdatedAt()
+                patient.getConsentAccepted(),  // Position 15: Boolean
+                patient.getConsentFormPath(),  // Position 16: String
+                patient.getResearchConsent(),  // Position 17: Boolean
+                patient.getSampleStorageConsent(),  // Position 18: Boolean
+                patient.getCreatedAt(),        // Position 19: LocalDateTime
+                patient.getUpdatedAt()         // Position 20: LocalDateTime
         );
     }
 }

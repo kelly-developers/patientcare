@@ -64,7 +64,8 @@ public class PatientController {
 
     @GetMapping("/research-consent")
     public ResponseEntity<List<PatientResponse>> getPatientsWithResearchConsent() {
-        List<PatientResponse> patients = patientService.getPatientsWithResearchConsent();
+        // Change from getPatientsWithResearchConsent() to getPatientsWithConsent()
+        List<PatientResponse> patients = patientService.getPatientsWithConsent();
         return ResponseEntity.ok(patients);
     }
 

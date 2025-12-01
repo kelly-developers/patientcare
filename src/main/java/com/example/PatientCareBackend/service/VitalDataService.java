@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -44,9 +45,12 @@ public class VitalDataService {
 
         // Calculate BMI if height and weight are provided
         if (vitalDataRequest.getHeight() != null && vitalDataRequest.getWeight() != null) {
-            BigDecimal heightInMeters = vitalDataRequest.getHeight().divide(BigDecimal.valueOf(100));
-            BigDecimal bmi = vitalDataRequest.getWeight().divide(heightInMeters.pow(2), 2, BigDecimal.ROUND_HALF_UP);
-            vitalData.setBmi(bmi);
+            BigDecimal heightInMeters = vitalDataRequest.getHeight().divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            if (heightInMeters.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal heightSquared = heightInMeters.multiply(heightInMeters);
+                BigDecimal bmi = vitalDataRequest.getWeight().divide(heightSquared, 2, RoundingMode.HALF_UP);
+                vitalData.setBmi(bmi);
+            }
         }
 
         vitalData.setRiskLevel(calculateRiskLevel(vitalData));
@@ -170,10 +174,12 @@ public class VitalDataService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getResearchConsent(),
-                patient.getSampleStorageConsent(),
-                patient.getCreatedAt(),
-                patient.getUpdatedAt()
+                patient.getConsentAccepted(),  // Position 15: Boolean (not getResearchConsent)
+                patient.getConsentFormPath(),  // Position 16: String (not getSampleStorageConsent)
+                patient.getResearchConsent(),  // Position 17: Boolean
+                patient.getSampleStorageConsent(),  // Position 18: Boolean
+                patient.getCreatedAt(),        // Position 19: LocalDateTime
+                patient.getUpdatedAt()         // Position 20: LocalDateTime
         );
     }
 }

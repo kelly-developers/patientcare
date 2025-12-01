@@ -53,4 +53,14 @@ public class PatientRequest {
     private Boolean consentAccepted = false;
 
     private String consentFormPath; // Path to uploaded consent form
+
+    // Research consent fields (optional)
+    private Boolean researchConsent = false;
+    private Boolean futureContactConsent = false;
+    private Boolean anonymizedDataConsent = false;
+    private Boolean sampleStorageConsent = false;
+    private String sampleTypes;
+    private String storageDuration;
+    private Boolean futureResearchUseConsent = false;
+    private Boolean destructionConsent = false;
 }

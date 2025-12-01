@@ -301,8 +301,10 @@ public class DuringOperationService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getResearchConsent(),
-                patient.getSampleStorageConsent(),
+                patient.getConsentAccepted(),  // Changed from getResearchConsent()
+                patient.getConsentFormPath(),  // Changed from getSampleStorageConsent()
+                patient.getResearchConsent(),  // Added this line
+                patient.getSampleStorageConsent(),  // Added this line
                 patient.getCreatedAt(),
                 patient.getUpdatedAt()
         );

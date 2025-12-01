@@ -177,10 +177,7 @@ public class AppointmentService {
         response.setStatus(appointment.getStatus());
         response.setReason(appointment.getReason());
         response.setNotes(appointment.getNotes());
-
-        // Fixed: Use fully qualified name to avoid conflict
-        response.setPriority((com.example.PatientCareBackend.model.Appointment.Priority) appointment.getPriority());
-
+        response.setPriority(appointment.getPriority());
         response.setArrivalStatus(appointment.getArrivalStatus());
         response.setCreatedAt(appointment.getCreatedAt());
 
@@ -203,10 +200,12 @@ public class AppointmentService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getResearchConsent(),
-                patient.getSampleStorageConsent(),
-                patient.getCreatedAt(),
-                patient.getUpdatedAt()
+                patient.getConsentAccepted(),  // ✅ Position 15
+                patient.getConsentFormPath(),  // ✅ Position 16
+                patient.getResearchConsent(),  // ✅ Position 17
+                patient.getSampleStorageConsent(),  // ✅ Position 18
+                patient.getCreatedAt(),        // ✅ Position 19
+                patient.getUpdatedAt()         // ✅ Position 20
         );
     }
 

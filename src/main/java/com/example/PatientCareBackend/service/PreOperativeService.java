@@ -198,8 +198,10 @@ public class PreOperativeService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getResearchConsent(),
-                patient.getSampleStorageConsent(),
+                patient.getConsentAccepted(), // This should be Boolean, not String
+                patient.getConsentFormPath(), // This should be String
+                patient.getResearchConsent(), // This should be Boolean
+                patient.getSampleStorageConsent(), // This should be Boolean
                 patient.getCreatedAt(),
                 patient.getUpdatedAt()
         );

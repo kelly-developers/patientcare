@@ -164,7 +164,7 @@ public class NotificationService {
                 notification.getDoctor() != null ? mapToUserResponse(notification.getDoctor()) : null,
                 notification.getPatient() != null ? mapToPatientResponse(notification.getPatient()) : null,
                 notification.getAppointment() != null ? mapToAppointmentResponse(notification.getAppointment()) : null,
-                (com.example.PatientCareBackend.model.Notification.Priority) notification.getPriority(), // Fixed: Cast to correct type
+                notification.getPriority(),
                 notification.getRead(),
                 notification.getScheduledFor(),
                 notification.getCreatedAt()
@@ -202,10 +202,12 @@ public class NotificationService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getResearchConsent(),
-                patient.getSampleStorageConsent(),
-                patient.getCreatedAt(),
-                patient.getUpdatedAt()
+                patient.getConsentAccepted(),  // ✅ Position 15
+                patient.getConsentFormPath(),  // ✅ Position 16
+                patient.getResearchConsent(),  // ✅ Position 17
+                patient.getSampleStorageConsent(),  // ✅ Position 18
+                patient.getCreatedAt(),        // ✅ Position 19
+                patient.getUpdatedAt()         // ✅ Position 20
         );
     }
 
@@ -222,7 +224,7 @@ public class NotificationService {
         response.setStatus(appointment.getStatus());
         response.setReason(appointment.getReason());
         response.setNotes(appointment.getNotes());
-        response.setPriority((com.example.PatientCareBackend.model.Appointment.Priority) appointment.getPriority()); // Fixed: Cast to correct type
+        response.setPriority(appointment.getPriority());
         response.setArrivalStatus(appointment.getArrivalStatus());
         response.setCreatedAt(appointment.getCreatedAt());
 
