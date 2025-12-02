@@ -61,4 +61,10 @@ public class DoctorAnalysisController {
         List<DoctorAnalysisResponse> analyses = doctorAnalysisService.getAnalysesRequiringSurgery();
         return ResponseEntity.ok(analyses);
     }
+
+    @GetMapping
+    public ResponseEntity<List<DoctorAnalysisResponse>> getAllAnalyses() {
+        List<DoctorAnalysisResponse> analyses = doctorAnalysisService.getAllAnalyses();
+        return ResponseEntity.ok(analyses);
+    }
 }

@@ -119,6 +119,13 @@ public class DoctorAnalysisService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<DoctorAnalysisResponse> getAllAnalyses() {
+        return doctorAnalysisRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     private DoctorAnalysisResponse mapToResponse(DoctorAnalysis analysis) {
         return new DoctorAnalysisResponse(
                 analysis.getId(),
