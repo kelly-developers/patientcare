@@ -94,7 +94,7 @@ public class User implements UserDetails {
         return true;
     }
 
-    // get full name
+    // Helper method to get full name
     public String getFullName() {
         return firstName + " " + lastName;
     }
