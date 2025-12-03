@@ -26,6 +26,8 @@ public class DoctorAnalysisService {
 
     @Transactional
     public DoctorAnalysisResponse createAnalysis(DoctorAnalysisRequest analysisRequest) {
+        log.info("Creating analysis with request: {}", analysisRequest);
+
         // Find patient
         Patient patient = patientRepository.findById(analysisRequest.getPatientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + analysisRequest.getPatientId()));
@@ -43,21 +45,30 @@ public class DoctorAnalysisService {
         analysis.setClinicalNotes(analysisRequest.getClinicalNotes());
         analysis.setRecommendSurgery(analysisRequest.getRecommendSurgery());
         analysis.setSurgeryType(analysisRequest.getSurgeryType());
-        analysis.setSurgeryUrgency(mapStringToSurgeryUrgency(analysisRequest.getSurgeryUrgency()));
+
+        // Map surgery urgency - handle null case
+        if (analysisRequest.getSurgeryUrgency() != null) {
+            DoctorAnalysis.SurgeryUrgency urgency = DoctorAnalysis.SurgeryUrgency.fromString(analysisRequest.getSurgeryUrgency());
+            analysis.setSurgeryUrgency(urgency);
+        }
+
         analysis.setRequireLabTests(analysisRequest.getRequireLabTests());
         analysis.setLabTestsNeeded(analysisRequest.getLabTestsNeeded());
         analysis.setStatus(DoctorAnalysis.AnalysisStatus.fromString(analysisRequest.getStatus()));
         analysis.setCreatedAt(LocalDateTime.now());
 
         DoctorAnalysis savedAnalysis = doctorAnalysisRepository.save(analysis);
+        log.info("Created analysis with ID: {}", savedAnalysis.getId());
 
         // Create surgery record if surgery is recommended
-        if (Boolean.TRUE.equals(analysisRequest.getRecommendSurgery()) && analysisRequest.getSurgeryType() != null && !analysisRequest.getSurgeryType().trim().isEmpty()) {
-            log.info("Creating surgery from analysis. Patient: {}, Doctor: {}, Surgery Type: {}",
-                    patient.getId(), doctor.getId(), analysisRequest.getSurgeryType());
-            createSurgeryFromAnalysis(patient, doctor, analysisRequest);
+        if (Boolean.TRUE.equals(analysisRequest.getRecommendSurgery()) &&
+                analysisRequest.getSurgeryType() != null &&
+                !analysisRequest.getSurgeryType().trim().isEmpty()) {
+
+            log.info("Creating surgery from analysis. RecommendSurgery: true, SurgeryType: {}", analysisRequest.getSurgeryType());
+            createSurgeryFromAnalysis(savedAnalysis);
         } else {
-            log.info("Surgery not recommended or surgery type not provided. RecommendSurgery: {}, SurgeryType: {}",
+            log.info("Surgery not created. RecommendSurgery: {}, SurgeryType: {}",
                     analysisRequest.getRecommendSurgery(), analysisRequest.getSurgeryType());
         }
 
@@ -65,36 +76,49 @@ public class DoctorAnalysisService {
     }
 
     @Transactional
-    private void createSurgeryFromAnalysis(Patient patient, User doctor, DoctorAnalysisRequest analysisRequest) {
+    private void createSurgeryFromAnalysis(DoctorAnalysis analysis) {
         try {
+            Patient patient = analysis.getPatient();
+            String procedureName = analysis.getSurgeryType();
+
+            log.info("Checking if surgery exists for patient {} with procedure {}", patient.getId(), procedureName);
+
             // Check if surgery already exists for this patient with same procedure
             boolean surgeryExists = surgeryRepository.existsByPatientAndProcedureNameAndStatus(
                     patient,
-                    analysisRequest.getSurgeryType(),
+                    procedureName,
                     Surgery.SurgeryStatus.PENDING_CONSENT
             );
 
             if (!surgeryExists) {
                 Surgery surgery = new Surgery();
                 surgery.setPatient(patient);
-                surgery.setProcedureName(analysisRequest.getSurgeryType());
-                surgery.setDiagnosis(analysisRequest.getDiagnosis());
-                surgery.setUrgency(mapAnalysisUrgencyToSurgeryUrgency(analysisRequest.getSurgeryUrgency()));
+                surgery.setProcedureName(procedureName);
+                surgery.setDiagnosis(analysis.getDiagnosis());
+
+                // Map urgency from DoctorAnalysis to Surgery
+                if (analysis.getSurgeryUrgency() != null) {
+                    Surgery.SurgeryUrgency surgeryUrgency = mapAnalysisUrgencyToSurgeryUrgency(analysis.getSurgeryUrgency().name());
+                    surgery.setUrgency(surgeryUrgency);
+                } else {
+                    surgery.setUrgency(Surgery.SurgeryUrgency.ELECTIVE);
+                }
+
                 surgery.setStatus(Surgery.SurgeryStatus.PENDING_CONSENT);
-                surgery.setRecommendedBy(doctor.getFirstName() + " " + doctor.getLastName());
-                surgery.setScheduledDate(LocalDateTime.now().plusDays(getScheduledDays(analysisRequest.getSurgeryUrgency())));
+                surgery.setRecommendedBy(analysis.getDoctor().getFirstName() + " " + analysis.getDoctor().getLastName());
+                surgery.setScheduledDate(LocalDateTime.now().plusDays(getScheduledDays(analysis.getSurgeryUrgency() != null ? analysis.getSurgeryUrgency().name() : null)));
                 surgery.setCreatedAt(LocalDateTime.now());
 
                 Surgery savedSurgery = surgeryRepository.save(surgery);
-                log.info("Created surgery with ID: {} for patient: {}, procedure: {}",
-                        savedSurgery.getId(), patient.getId(), analysisRequest.getSurgeryType());
+                log.info("SUCCESS: Created surgery with ID: {} for patient: {}, procedure: {}, status: {}",
+                        savedSurgery.getId(), patient.getId(), procedureName, savedSurgery.getStatus());
             } else {
-                log.info("Surgery already exists for patient {} with procedure {}",
-                        patient.getId(), analysisRequest.getSurgeryType());
+                log.info("Surgery already exists for patient {} with procedure {} and status PENDING_CONSENT",
+                        patient.getId(), procedureName);
             }
         } catch (Exception e) {
-            log.error("Error creating surgery from analysis: {}", e.getMessage(), e);
-            throw e;
+            log.error("ERROR creating surgery from analysis: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create surgery from analysis: " + e.getMessage(), e);
         }
     }
 
@@ -103,21 +127,21 @@ public class DoctorAnalysisService {
             return Surgery.SurgeryUrgency.ELECTIVE;
         }
 
-        // First convert to DoctorAnalysis.SurgeryUrgency
-        DoctorAnalysis.SurgeryUrgency doctorAnalysisUrgency = DoctorAnalysis.SurgeryUrgency.fromString(analysisUrgency);
+        // Convert to uppercase for case-insensitive comparison
+        String urgencyUpper = analysisUrgency.toUpperCase();
 
-        // Then map to Surgery.SurgeryUrgency
-        return switch (doctorAnalysisUrgency) {
-            case EMERGENT -> Surgery.SurgeryUrgency.EMERGENCY;
-            case URGENT -> Surgery.SurgeryUrgency.URGENT;
-            case SCHEDULED -> Surgery.SurgeryUrgency.SCHEDULED;
-            case ELECTIVE -> Surgery.SurgeryUrgency.ELECTIVE;
-            default -> Surgery.SurgeryUrgency.ELECTIVE;
-        };
-    }
-
-    private DoctorAnalysis.SurgeryUrgency mapStringToSurgeryUrgency(String urgency) {
-        return DoctorAnalysis.SurgeryUrgency.fromString(urgency);
+        // Map DoctorAnalysis.SurgeryUrgency to Surgery.SurgeryUrgency
+        if (urgencyUpper.contains("EMERGENT") || urgencyUpper.contains("EMERGENCY")) {
+            return Surgery.SurgeryUrgency.EMERGENCY;
+        } else if (urgencyUpper.contains("URGENT")) {
+            return Surgery.SurgeryUrgency.URGENT;
+        } else if (urgencyUpper.contains("SCHEDULED") || urgencyUpper.contains("ROUTINE")) {
+            return Surgery.SurgeryUrgency.SCHEDULED;
+        } else if (urgencyUpper.contains("ELECTIVE")) {
+            return Surgery.SurgeryUrgency.ELECTIVE;
+        } else {
+            return Surgery.SurgeryUrgency.ELECTIVE;
+        }
     }
 
     private int getScheduledDays(String urgency) {
@@ -125,16 +149,19 @@ public class DoctorAnalysisService {
             return 7;
         }
 
-        // Convert to DoctorAnalysis.SurgeryUrgency enum
-        DoctorAnalysis.SurgeryUrgency surgeryUrgency = DoctorAnalysis.SurgeryUrgency.fromString(urgency);
+        String urgencyUpper = urgency.toUpperCase();
 
-        return switch (surgeryUrgency) {
-            case EMERGENT -> 1;
-            case URGENT -> 3;
-            case SCHEDULED -> 7;
-            case ELECTIVE -> 14;
-            default -> 7;
-        };
+        if (urgencyUpper.contains("EMERGENT") || urgencyUpper.contains("EMERGENCY")) {
+            return 1;
+        } else if (urgencyUpper.contains("URGENT")) {
+            return 3;
+        } else if (urgencyUpper.contains("SCHEDULED") || urgencyUpper.contains("ROUTINE")) {
+            return 7;
+        } else if (urgencyUpper.contains("ELECTIVE")) {
+            return 14;
+        } else {
+            return 7;
+        }
     }
 
     @Transactional(readOnly = true)
@@ -173,7 +200,12 @@ public class DoctorAnalysisService {
         analysis.setClinicalNotes(analysisRequest.getClinicalNotes());
         analysis.setRecommendSurgery(analysisRequest.getRecommendSurgery());
         analysis.setSurgeryType(analysisRequest.getSurgeryType());
-        analysis.setSurgeryUrgency(mapStringToSurgeryUrgency(analysisRequest.getSurgeryUrgency()));
+
+        if (analysisRequest.getSurgeryUrgency() != null) {
+            DoctorAnalysis.SurgeryUrgency urgency = DoctorAnalysis.SurgeryUrgency.fromString(analysisRequest.getSurgeryUrgency());
+            analysis.setSurgeryUrgency(urgency);
+        }
+
         analysis.setRequireLabTests(analysisRequest.getRequireLabTests());
         analysis.setLabTestsNeeded(analysisRequest.getLabTestsNeeded());
 
@@ -182,6 +214,14 @@ public class DoctorAnalysisService {
         }
 
         DoctorAnalysis updatedAnalysis = doctorAnalysisRepository.save(analysis);
+
+        // If surgery recommendation changed to true, create surgery
+        if (Boolean.TRUE.equals(analysisRequest.getRecommendSurgery()) &&
+                analysisRequest.getSurgeryType() != null &&
+                !analysisRequest.getSurgeryType().trim().isEmpty()) {
+            createSurgeryFromAnalysis(updatedAnalysis);
+        }
+
         return mapToResponse(updatedAnalysis);
     }
 
@@ -205,7 +245,9 @@ public class DoctorAnalysisService {
 
     @Transactional(readOnly = true)
     public List<DoctorAnalysisResponse> getAnalysesRequiringSurgery() {
-        return doctorAnalysisRepository.findByRecommendSurgeryTrue().stream()
+        List<DoctorAnalysis> analyses = doctorAnalysisRepository.findByRecommendSurgeryTrue();
+        log.info("Found {} analyses requiring surgery", analyses.size());
+        return analyses.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }

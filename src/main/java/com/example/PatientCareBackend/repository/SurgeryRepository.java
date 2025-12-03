@@ -23,7 +23,8 @@ public interface SurgeryRepository extends JpaRepository<Surgery, Long> {
     @Query("SELECT s FROM Surgery s WHERE s.surgeonName = :surgeonName")
     List<Surgery> findBySurgeonName(@Param("surgeonName") String surgeonName);
 
-    @Query("SELECT s FROM Surgery s WHERE s.status = 'PENDING_CONSENT'")
+    // FIXED: Use the enum directly, not string literal
+    @Query("SELECT s FROM Surgery s WHERE s.status = com.example.PatientCareBackend.model.Surgery.SurgeryStatus.PENDING_CONSENT")
     List<Surgery> findPendingConsentSurgeries();
 
     @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Surgery s WHERE s.patient = :patient AND s.procedureName = :procedureName AND s.status = :status")
