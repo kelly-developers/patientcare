@@ -1,5 +1,6 @@
 package com.example.PatientCareBackend.repository;
 
+import com.example.PatientCareBackend.model.Patient;
 import com.example.PatientCareBackend.model.Surgery;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -24,4 +25,9 @@ public interface SurgeryRepository extends JpaRepository<Surgery, Long> {
 
     @Query("SELECT s FROM Surgery s WHERE s.status = 'PENDING_CONSENT'")
     List<Surgery> findPendingConsentSurgeries();
+
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Surgery s WHERE s.patient = :patient AND s.procedureName = :procedureName AND s.status = :status")
+    boolean existsByPatientAndProcedureNameAndStatus(@Param("patient") Patient patient,
+                                                     @Param("procedureName") String procedureName,
+                                                     @Param("status") Surgery.SurgeryStatus status);
 }

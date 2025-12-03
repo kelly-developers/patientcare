@@ -54,6 +54,7 @@ public class SurgeryService {
         surgery.setCompletedDate(surgeryRequest.getCompletedDate());
         surgery.setSurgeonName(surgeryRequest.getSurgeonName());
         surgery.setDurationMinutes(surgeryRequest.getDurationMinutes());
+        surgery.setCreatedAt(LocalDateTime.now());
 
         Surgery savedSurgery = surgeryRepository.save(surgery);
         return mapToResponse(savedSurgery);
@@ -92,21 +93,26 @@ public class SurgeryService {
     }
 
     @Transactional
-    public SurgeryResponse updateSurgeryStatus(Long id, Surgery.SurgeryStatus status) {
+    public SurgeryResponse updateSurgeryStatus(Long id, String status) {
         Surgery surgery = surgeryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Surgery not found with id: " + id));
 
-        surgery.setStatus(status);
+        try {
+            Surgery.SurgeryStatus surgeryStatus = Surgery.SurgeryStatus.valueOf(status);
+            surgery.setStatus(surgeryStatus);
 
-        // Update relevant dates based on status
-        if (status == Surgery.SurgeryStatus.IN_PROGRESS) {
-            surgery.setActualDate(LocalDateTime.now());
-        } else if (status == Surgery.SurgeryStatus.COMPLETED) {
-            surgery.setCompletedDate(LocalDateTime.now());
+            // Update relevant dates based on status
+            if (surgeryStatus == Surgery.SurgeryStatus.IN_PROGRESS) {
+                surgery.setActualDate(LocalDateTime.now());
+            } else if (surgeryStatus == Surgery.SurgeryStatus.COMPLETED) {
+                surgery.setCompletedDate(LocalDateTime.now());
+            }
+
+            Surgery updatedSurgery = surgeryRepository.save(surgery);
+            return mapToResponse(updatedSurgery);
+        } catch (IllegalArgumentException e) {
+            throw new ResourceNotFoundException("Invalid status: " + status);
         }
-
-        Surgery updatedSurgery = surgeryRepository.save(surgery);
-        return mapToResponse(updatedSurgery);
     }
 
     @Transactional(readOnly = true)
@@ -128,10 +134,15 @@ public class SurgeryService {
     }
 
     @Transactional(readOnly = true)
-    public List<SurgeryResponse> getSurgeriesByStatus(Surgery.SurgeryStatus status) {
-        return surgeryRepository.findByStatus(status).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<SurgeryResponse> getSurgeriesByStatus(String status) {
+        try {
+            Surgery.SurgeryStatus surgeryStatus = Surgery.SurgeryStatus.valueOf(status);
+            return surgeryRepository.findByStatus(surgeryStatus).stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        } catch (IllegalArgumentException e) {
+            throw new ResourceNotFoundException("Invalid status: " + status);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -183,12 +194,12 @@ public class SurgeryService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getConsentAccepted(),  // ✅ Position 15
-                patient.getConsentFormPath(),  // ✅ Position 16
-                patient.getResearchConsent(),  // ✅ Position 17
-                patient.getSampleStorageConsent(),  // ✅ Position 18
-                patient.getCreatedAt(),        // ✅ Position 19
-                patient.getUpdatedAt()         // ✅ Position 20
+                patient.getConsentAccepted(),
+                patient.getConsentFormPath(),
+                patient.getResearchConsent(),
+                patient.getSampleStorageConsent(),
+                patient.getCreatedAt(),
+                patient.getUpdatedAt()
         );
     }
 }

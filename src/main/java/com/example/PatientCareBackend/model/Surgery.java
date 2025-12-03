@@ -72,10 +72,18 @@ public class Surgery {
     private LocalDateTime createdAt;
 
     public enum SurgeryUrgency {
-        EMERGENCY, URGENT, ROUTINE, ELECTIVE
+        EMERGENCY,
+        URGENT,
+        SCHEDULED,  // Added SCHEDULED
+        ROUTINE,
+        ELECTIVE
     }
 
     public enum SurgeryStatus {
-        PENDING_CONSENT, SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+        PENDING_CONSENT,
+        SCHEDULED,
+        IN_PROGRESS,
+        COMPLETED,
+        CANCELLED
     }
 }
