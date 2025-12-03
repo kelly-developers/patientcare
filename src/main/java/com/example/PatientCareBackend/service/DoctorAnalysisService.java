@@ -6,6 +6,7 @@ import com.example.PatientCareBackend.exception.ResourceNotFoundException;
 import com.example.PatientCareBackend.model.*;
 import com.example.PatientCareBackend.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DoctorAnalysisService {
 
     private final DoctorAnalysisRepository doctorAnalysisRepository;
@@ -50,8 +52,13 @@ public class DoctorAnalysisService {
         DoctorAnalysis savedAnalysis = doctorAnalysisRepository.save(analysis);
 
         // Create surgery record if surgery is recommended
-        if (analysisRequest.getRecommendSurgery() && analysisRequest.getSurgeryType() != null) {
+        if (Boolean.TRUE.equals(analysisRequest.getRecommendSurgery()) && analysisRequest.getSurgeryType() != null && !analysisRequest.getSurgeryType().trim().isEmpty()) {
+            log.info("Creating surgery from analysis. Patient: {}, Doctor: {}, Surgery Type: {}",
+                    patient.getId(), doctor.getId(), analysisRequest.getSurgeryType());
             createSurgeryFromAnalysis(patient, doctor, analysisRequest);
+        } else {
+            log.info("Surgery not recommended or surgery type not provided. RecommendSurgery: {}, SurgeryType: {}",
+                    analysisRequest.getRecommendSurgery(), analysisRequest.getSurgeryType());
         }
 
         return mapToResponse(savedAnalysis);
@@ -59,25 +66,35 @@ public class DoctorAnalysisService {
 
     @Transactional
     private void createSurgeryFromAnalysis(Patient patient, User doctor, DoctorAnalysisRequest analysisRequest) {
-        // Check if surgery already exists for this patient with same procedure
-        boolean surgeryExists = surgeryRepository.existsByPatientAndProcedureNameAndStatus(
-                patient,
-                analysisRequest.getSurgeryType(),
-                Surgery.SurgeryStatus.PENDING_CONSENT
-        );
+        try {
+            // Check if surgery already exists for this patient with same procedure
+            boolean surgeryExists = surgeryRepository.existsByPatientAndProcedureNameAndStatus(
+                    patient,
+                    analysisRequest.getSurgeryType(),
+                    Surgery.SurgeryStatus.PENDING_CONSENT
+            );
 
-        if (!surgeryExists) {
-            Surgery surgery = new Surgery();
-            surgery.setPatient(patient);
-            surgery.setProcedureName(analysisRequest.getSurgeryType());
-            surgery.setDiagnosis(analysisRequest.getDiagnosis());
-            surgery.setUrgency(mapAnalysisUrgencyToSurgeryUrgency(analysisRequest.getSurgeryUrgency()));
-            surgery.setStatus(Surgery.SurgeryStatus.PENDING_CONSENT);
-            surgery.setRecommendedBy(doctor.getFirstName() + " " + doctor.getLastName());
-            surgery.setScheduledDate(LocalDateTime.now().plusDays(getScheduledDays(analysisRequest.getSurgeryUrgency())));
-            surgery.setCreatedAt(LocalDateTime.now());
+            if (!surgeryExists) {
+                Surgery surgery = new Surgery();
+                surgery.setPatient(patient);
+                surgery.setProcedureName(analysisRequest.getSurgeryType());
+                surgery.setDiagnosis(analysisRequest.getDiagnosis());
+                surgery.setUrgency(mapAnalysisUrgencyToSurgeryUrgency(analysisRequest.getSurgeryUrgency()));
+                surgery.setStatus(Surgery.SurgeryStatus.PENDING_CONSENT);
+                surgery.setRecommendedBy(doctor.getFirstName() + " " + doctor.getLastName());
+                surgery.setScheduledDate(LocalDateTime.now().plusDays(getScheduledDays(analysisRequest.getSurgeryUrgency())));
+                surgery.setCreatedAt(LocalDateTime.now());
 
-            surgeryRepository.save(surgery);
+                Surgery savedSurgery = surgeryRepository.save(surgery);
+                log.info("Created surgery with ID: {} for patient: {}, procedure: {}",
+                        savedSurgery.getId(), patient.getId(), analysisRequest.getSurgeryType());
+            } else {
+                log.info("Surgery already exists for patient {} with procedure {}",
+                        patient.getId(), analysisRequest.getSurgeryType());
+            }
+        } catch (Exception e) {
+            log.error("Error creating surgery from analysis: {}", e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -213,7 +230,7 @@ public class DoctorAnalysisService {
                 analysis.getSurgeryUrgency(),
                 analysis.getRequireLabTests(),
                 analysis.getLabTestsNeeded(),
-                analysis.getStatus(),  // Pass the enum directly
+                analysis.getStatus(),
                 analysis.getCreatedAt()
         );
     }
