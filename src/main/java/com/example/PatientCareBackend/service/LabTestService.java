@@ -184,12 +184,12 @@ public class LabTestService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getConsentAccepted(),  // ✅ Position 15: Boolean (NOT getResearchConsent)
-                patient.getConsentFormPath(),  // ✅ Position 16: String (NOT getSampleStorageConsent)
-                patient.getResearchConsent(),  // ✅ Position 17: Boolean (NEW)
-                patient.getSampleStorageConsent(),  // ✅ Position 18: Boolean (NEW)
-                patient.getCreatedAt(),        // ✅ Position 19: LocalDateTime
-                patient.getUpdatedAt()         // ✅ Position 20: LocalDateTime
+                patient.getConsentAccepted(),
+                patient.getConsentFormPath(),
+                patient.getResearchConsent(),
+                patient.getSampleStorageConsent(),
+                patient.getCreatedAt(),
+                patient.getUpdatedAt()
         );
     }
 }

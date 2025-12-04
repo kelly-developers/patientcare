@@ -27,7 +27,7 @@ public class Patient {
     @NotBlank
     @Size(max = 20)
     @Column(name = "patient_id", unique = true)
-    private String patientId; // Will be auto-generated
+    private String patientId;
 
     @NotBlank
     @Size(max = 50)

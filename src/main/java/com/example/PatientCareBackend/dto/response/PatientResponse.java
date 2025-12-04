@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PatientResponse {
     private Long id;
-    private String patientId; // Auto-generated
+    private String patientId;
     private String firstName;
     private String lastName;
     private LocalDate dateOfBirth;
@@ -40,7 +40,6 @@ public class PatientResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Additional constructor for backward compatibility (20 parameters)
     public PatientResponse(Long id, String patientId, String firstName, String lastName,
                            LocalDate dateOfBirth, Gender gender, String phone, String email,
                            String address, String emergencyContactName, String emergencyContactPhone,

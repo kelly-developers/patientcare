@@ -18,7 +18,7 @@ public class NotificationResponse {
     private UserResponse doctor;
     private PatientResponse patient;
     private AppointmentResponse appointment;
-    private Notification.Priority priority; // Correct type
+    private Notification.Priority priority;
     private Boolean read;
     private LocalDateTime scheduledFor;
     private LocalDateTime createdAt;

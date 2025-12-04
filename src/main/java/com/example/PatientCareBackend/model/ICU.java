@@ -26,7 +26,6 @@ public class ICU {
     @JoinColumn(name = "patient_id")
     private Patient patient;
 
-    // Hemodynamics
     @NotNull
     @Column(name = "heart_rate")
     private Integer heartRate;

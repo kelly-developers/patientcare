@@ -163,12 +163,12 @@ public class ConsentService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getConsentAccepted(),  // ✅ Position 15
-                patient.getConsentFormPath(),  // ✅ Position 16
-                patient.getResearchConsent(),  // ✅ Position 17
-                patient.getSampleStorageConsent(),  // ✅ Position 18
-                patient.getCreatedAt(),        // ✅ Position 19
-                patient.getUpdatedAt()         // ✅ Position 20
+                patient.getConsentAccepted(),
+                patient.getConsentFormPath(),
+                patient.getResearchConsent(),
+                patient.getSampleStorageConsent(),
+                patient.getCreatedAt(),
+                patient.getUpdatedAt()
         );
     }
 }

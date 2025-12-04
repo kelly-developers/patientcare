@@ -159,13 +159,9 @@ public class ICUService {
 
     @Transactional
     public ICUResponse addMedication(Long id, Map<String, Object> medication) {
-        // This would typically update a separate medication table
-        // For now, we'll just return the current record
         ICU icuRecord = icuRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ICU record not found with id: " + id));
 
-        // In a real implementation, you would add medication to a separate table
-        // and potentially update the ICU record with medication information
 
         return mapToResponse(icuRecord);
     }
@@ -265,12 +261,12 @@ public class ICUService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getConsentAccepted(),  // ✅ Position 15
-                patient.getConsentFormPath(),  // ✅ Position 16
-                patient.getResearchConsent(),  // ✅ Position 17
-                patient.getSampleStorageConsent(),  // ✅ Position 18
-                patient.getCreatedAt(),        // ✅ Position 19
-                patient.getUpdatedAt()         // ✅ Position 20
+                patient.getConsentAccepted(),
+                patient.getConsentFormPath(),
+                patient.getResearchConsent(),
+                patient.getSampleStorageConsent(),
+                patient.getCreatedAt(),
+                patient.getUpdatedAt()
         );
     }
 }

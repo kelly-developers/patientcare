@@ -74,7 +74,7 @@ public class Surgery {
     public enum SurgeryUrgency {
         EMERGENCY,
         URGENT,
-        SCHEDULED,  // Added SCHEDULED
+        SCHEDULED,
         ROUTINE,
         ELECTIVE
     }

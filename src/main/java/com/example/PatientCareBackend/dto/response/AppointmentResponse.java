@@ -18,7 +18,7 @@ public class AppointmentResponse {
     private Appointment.AppointmentStatus status;
     private String reason;
     private String notes;
-    private Appointment.Priority priority; // Correct type
+    private Appointment.Priority priority;
     private Appointment.ArrivalStatus arrivalStatus;
     private LocalDateTime createdAt;
 }

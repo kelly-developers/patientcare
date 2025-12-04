@@ -301,10 +301,10 @@ public class DuringOperationService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getConsentAccepted(),  // Changed from getResearchConsent()
-                patient.getConsentFormPath(),  // Changed from getSampleStorageConsent()
-                patient.getResearchConsent(),  // Added this line
-                patient.getSampleStorageConsent(),  // Added this line
+                patient.getConsentAccepted(),
+                patient.getConsentFormPath(),
+                patient.getResearchConsent(),
+                patient.getSampleStorageConsent(),
                 patient.getCreatedAt(),
                 patient.getUpdatedAt()
         );

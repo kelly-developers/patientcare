@@ -305,12 +305,12 @@ public class ExportService {
                 patient.getMedicalHistory(),
                 patient.getAllergies(),
                 patient.getCurrentMedications(),
-                patient.getConsentAccepted(),  // Position 15: Boolean
-                patient.getConsentFormPath(),  // Position 16: String
-                patient.getResearchConsent(),  // Position 17: Boolean
-                patient.getSampleStorageConsent(),  // Position 18: Boolean
-                patient.getCreatedAt(),        // Position 19: LocalDateTime
-                patient.getUpdatedAt()         // Position 20: LocalDateTime
+                patient.getConsentAccepted(),
+                patient.getConsentFormPath(),
+                patient.getResearchConsent(),
+                patient.getSampleStorageConsent(),
+                patient.getCreatedAt(),
+                patient.getUpdatedAt()
         );
     }
 
